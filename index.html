@@ -176,7 +176,7 @@
   .badge-pendiente{background:var(--lavender-100); color:var(--purple-700);}
   .badge-cumplido{background:var(--purple-700); color:white;}
   .badge-no_cumplido{background:var(--pink-500); color:white;}
-  .badge-vencido{background:#FBEAF1; color:var(--danger); border:1px solid var(--danger);}
+  .badge-incumplido{background:#FBEAF1; color:var(--danger); border:1px solid var(--danger);}
   .compromiso-desc{font-size:13.5px; color:var(--ink-600); margin-top:10px; line-height:1.5;}
   .compromiso-actions{display:flex; gap:8px; margin-top:14px;}
   .btn-mini{padding:7px 14px; border-radius:8px; font-size:12.5px; font-weight:600;}
@@ -208,6 +208,32 @@
 
   .filters{display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap;}
   .filters select{padding:8px 12px; border-radius:8px; border:1.5px solid var(--line); font-size:13px;}
+
+  /* ---------- TABLA CUADRO GENERAL ---------- */
+  .tabla-wrap{background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden;}
+  table.tabla-compromisos{width:100%; border-collapse:collapse; font-size:13.5px;}
+  table.tabla-compromisos thead th{
+    text-align:left; padding:12px 16px; background:var(--lavender-100); color:var(--purple-700);
+    font-size:11.5px; text-transform:uppercase; letter-spacing:0.04em; font-weight:700;
+  }
+  table.tabla-compromisos tbody tr{border-top:1px solid var(--line); cursor:pointer;}
+  table.tabla-compromisos tbody tr:hover{background:var(--lavender-50);}
+  table.tabla-compromisos td{padding:12px 16px; vertical-align:middle;}
+  table.tabla-compromisos td.titulo-cell{font-weight:600;}
+  .detalle-row td{background:var(--lavender-50); padding:0 16px 16px 16px;}
+
+  .equipo-list{margin-top:8px;}
+  .equipo-item{
+    display:flex; justify-content:space-between; align-items:center; padding:12px 16px;
+    border-top:1px solid var(--line); font-size:13.5px;
+  }
+  .equipo-item:first-child{border-top:none;}
+  .equipo-item .nombre{font-weight:600;}
+  .equipo-item .correo{color:var(--ink-600); font-size:12.5px; margin-left:8px;}
+  .rol-tag{font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; text-transform:uppercase;}
+  .rol-tag.rol-lider{background:var(--lavender-100); color:var(--purple-700);}
+  .rol-tag.rol-colaborador{background:#FBEAF1; color:var(--pink-500);}
+  .success-msg{background:var(--lavender-100); color:var(--purple-700); padding:10px 14px; border-radius:8px; font-size:13px; margin-bottom:16px;}
 
   @media (max-width:860px){
     #auth-view{grid-template-columns:1fr;}
@@ -298,7 +324,7 @@
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
   onAuthStateChanged, signOut
@@ -328,6 +354,7 @@ let currentPage = null;
 let unsubCompromisos = null;
 let allCompromisos = [];
 let orgColaboradores = [];
+let orgUsuarios = [];
 
 // ---------- AUTH TABS ----------
 window.switchTab = function(tab){
@@ -452,7 +479,7 @@ onAuthStateChanged(auth, async (user)=>{
 // ---------- SHELL / NAV ----------
 const ROLE_LABEL = { gerente:'Gerente', lider:'Líder', colaborador:'Colaborador' };
 const NAV = {
-  gerente: [ ['resumen','Resumen'], ['todos','Todos los compromisos'] ],
+  gerente: [ ['resumen','Resumen'], ['todos','Todos los compromisos'], ['equipo','Equipo'] ],
   lider: [ ['crear','Crear compromiso'], ['misasignados','Lo que asigné'] ],
   colaborador: [ ['mistareas','Mis compromisos'] ]
 };
@@ -490,19 +517,21 @@ function listenCompromisos(){
     if(currentPage) renderPage(currentPage, true);
   });
 
-  const qu = query(collection(db,'usuarios'), where('orgCode','==',currentUser.orgCode), where('rol','==','colaborador'));
+  const qu = query(collection(db,'usuarios'), where('orgCode','==',currentUser.orgCode));
   onSnapshot(qu, (snap)=>{
-    orgColaboradores = [];
-    snap.forEach(d=> orgColaboradores.push({uid:d.id, ...d.data()}));
+    orgUsuarios = [];
+    snap.forEach(d=> orgUsuarios.push({uid:d.id, ...d.data()}));
+    orgColaboradores = orgUsuarios.filter(u=>u.rol==='colaborador');
+    if(currentPage==='equipo' || currentPage==='crear') renderPage(currentPage);
   });
 }
 
 function computeEstado(c){
   if(c.estado === 'cumplido' || c.estado === 'no_cumplido') return c.estado;
-  if(c.fechaLimite && new Date(c.fechaLimite) < new Date(new Date().toDateString())) return 'vencido';
+  if(c.fechaLimite && new Date(c.fechaLimite) < new Date(new Date().toDateString())) return 'incumplido';
   return 'pendiente';
 }
-const ESTADO_LABEL = { pendiente:'Pendiente', cumplido:'Cumplido', no_cumplido:'No cumplido', vencido:'Vencido' };
+const ESTADO_LABEL = { pendiente:'Pendiente', cumplido:'Cumplido', no_cumplido:'No cumplido', incumplido:'Incumplido' };
 
 // ---------- PAGE ROUTER ----------
 function renderPage(key, keepScroll){
@@ -514,12 +543,13 @@ function renderPage(key, keepScroll){
   else if(key==='crear') main.innerHTML = pageCrear();
   else if(key==='misasignados') main.innerHTML = pageMisAsignados();
   else if(key==='mistareas') main.innerHTML = pageMisTareas();
+  else if(key==='equipo') main.innerHTML = pageEquipo();
 }
 
 // ---------- GERENTE: RESUMEN ----------
 function pageResumen(){
   const list = allCompromisos.map(c=>({...c, estadoReal: computeEstado(c)}));
-  const counts = { pendiente:0, cumplido:0, no_cumplido:0, vencido:0 };
+  const counts = { pendiente:0, cumplido:0, no_cumplido:0, incumplido:0 };
   list.forEach(c=> counts[c.estadoReal]++);
 
   const statCard = (label, num, color)=> `
@@ -538,7 +568,7 @@ function pageResumen(){
       ${statCard('Pendientes', counts.pendiente, 'var(--purple-500)')}
       ${statCard('Cumplidos', counts.cumplido, 'var(--purple-700)')}
       ${statCard('No cumplidos', counts.no_cumplido, 'var(--pink-500)')}
-      ${statCard('Vencidos', counts.vencido, 'var(--danger)')}
+      ${statCard('Incumplidos', counts.incumplido, 'var(--danger)')}
     </div>
     <div class="card">
       <h3>Actividad reciente</h3>
@@ -547,31 +577,52 @@ function pageResumen(){
   `;
 }
 
-// ---------- GERENTE: TODOS ----------
+// ---------- GERENTE: TODOS (CUADRO GENERAL) ----------
+const MES_NOMBRES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+let expandedRow = null;
+
 function pageTodos(){
-  const lideres = [...new Set(allCompromisos.map(c=>c.liderNombre))];
   const list = allCompromisos.map(c=>({...c, estadoReal: computeEstado(c)}));
+  const lideres = [...new Set(list.map(c=>c.liderNombre))];
+  const responsables = [...new Set(list.map(c=>c.responsableNombre))];
+  const anios = [...new Set(list.filter(c=>c.fechaLimite).map(c=> c.fechaLimite.slice(0,4)))].sort();
 
   setTimeout(()=>{
-    const selEstado = document.getElementById('f-estado');
-    const selLider = document.getElementById('f-lider');
-    if(selEstado) selEstado.onchange = ()=> applyFilters();
-    if(selLider) selLider.onchange = ()=> applyFilters();
+    ['f-estado','f-lider','f-asignado','f-mes','f-anio'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.onchange = renderTablaFiltrada;
+    });
+    renderTablaFiltrada();
   },0);
 
-  function applyFilters(){
+  function renderTablaFiltrada(){
     const est = document.getElementById('f-estado').value;
     const lid = document.getElementById('f-lider').value;
-    const filtered = list.filter(c=> (est==='todos'||c.estadoReal===est) && (lid==='todos'||c.liderNombre===lid) );
-    document.getElementById('lista-todos').innerHTML = filtered.length===0
-      ? emptyState('No hay compromisos con ese filtro.')
-      : filtered.map(c=>compromisoCard(c,'gerente')).join('');
+    const asig = document.getElementById('f-asignado').value;
+    const mes = document.getElementById('f-mes').value;
+    const anio = document.getElementById('f-anio').value;
+
+    const filtered = list.filter(c=>{
+      if(est!=='todos' && c.estadoReal!==est) return false;
+      if(lid!=='todos' && c.liderNombre!==lid) return false;
+      if(asig!=='todos' && c.responsableNombre!==asig) return false;
+      if(c.fechaLimite){
+        if(mes!=='todos' && c.fechaLimite.slice(5,7)!==mes) return false;
+        if(anio!=='todos' && c.fechaLimite.slice(0,4)!==anio) return false;
+      } else if(mes!=='todos' || anio!=='todos'){
+        return false;
+      }
+      return true;
+    });
+    document.getElementById('tabla-body').innerHTML = filtered.length===0
+      ? `<tr><td colspan="5">${emptyState('No hay compromisos con ese filtro.')}</td></tr>`
+      : filtered.map(c=>filaCompromiso(c)).join('');
   }
-  window.applyFilters = applyFilters;
+  window.renderTablaFiltrada = renderTablaFiltrada;
 
   return `
     <div class="page-header">
-      <div><h1>Todos los compromisos</h1><div class="sub">Filtra por estado o por líder</div></div>
+      <div><h1>Cuadro general de compromisos</h1><div class="sub">Filtra por estado, líder, asignado, mes o año — haz click en una fila para ver el detalle</div></div>
     </div>
     <div class="filters">
       <select id="f-estado">
@@ -579,15 +630,52 @@ function pageTodos(){
         <option value="pendiente">Pendiente</option>
         <option value="cumplido">Cumplido</option>
         <option value="no_cumplido">No cumplido</option>
-        <option value="vencido">Vencido</option>
+        <option value="incumplido">Incumplido</option>
       </select>
       <select id="f-lider">
         <option value="todos">Todos los líderes</option>
         ${lideres.map(l=>`<option value="${l}">${l}</option>`).join('')}
       </select>
+      <select id="f-asignado">
+        <option value="todos">Todos los asignados</option>
+        ${responsables.map(r=>`<option value="${r}">${r}</option>`).join('')}
+      </select>
+      <select id="f-mes">
+        <option value="todos">Todos los meses</option>
+        ${MES_NOMBRES.map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}">${m}</option>`).join('')}
+      </select>
+      <select id="f-anio">
+        <option value="todos">Todos los años</option>
+        ${anios.map(a=>`<option value="${a}">${a}</option>`).join('')}
+      </select>
     </div>
-    <div id="lista-todos">${list.length===0 ? emptyState('Aún no hay compromisos registrados.') : list.map(c=>compromisoCard(c,'gerente')).join('')}</div>
+    <div class="tabla-wrap">
+      <table class="tabla-compromisos">
+        <thead><tr><th>Compromiso</th><th>Asignado a</th><th>Líder</th><th>Fecha límite</th><th>Estado</th></tr></thead>
+        <tbody id="tabla-body"></tbody>
+      </table>
+    </div>
   `;
+}
+
+function filaCompromiso(c){
+  const fecha = c.fechaLimite ? new Date(c.fechaLimite+'T00:00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short',year:'numeric'}) : '—';
+  const isOpen = expandedRow===c.id;
+  return `
+    <tr onclick="toggleFila('${c.id}')">
+      <td class="titulo-cell">${escapeHtml(c.titulo)}</td>
+      <td>${escapeHtml(c.responsableNombre)}</td>
+      <td>${escapeHtml(c.liderNombre)}</td>
+      <td class="mono">${fecha}</td>
+      <td><span class="badge badge-${c.estadoReal}">${ESTADO_LABEL[c.estadoReal]}</span></td>
+    </tr>
+    ${isOpen ? `<tr class="detalle-row"><td colspan="5">${compromisoCard(c,'gerente')}</td></tr>` : ''}
+  `;
+}
+
+window.toggleFila = function(id){
+  expandedRow = expandedRow===id ? null : id;
+  window.renderTablaFiltrada();
 }
 
 // ---------- LIDER: CREAR ----------
@@ -662,6 +750,89 @@ function pageMisTareas(){
   `;
 }
 
+// ---------- GERENTE: EQUIPO ----------
+function pageEquipo(){
+  setTimeout(()=>{
+    const btn = document.getElementById('btn-crear-usuario');
+    if(btn) btn.onclick = crearUsuarioDesdeGerente;
+  },0);
+
+  const equipo = orgUsuarios.filter(u=>u.uid!==currentUser.uid);
+
+  return `
+    <div class="page-header">
+      <div><h1>Equipo</h1><div class="sub">Crea las cuentas de líderes y colaboradores de tu organización</div></div>
+    </div>
+    <div class="card">
+      <h3>Agregar persona</h3>
+      <div id="equipo-msg"></div>
+      <div class="field"><label>Nombre completo</label><input type="text" id="eq-nombre"></div>
+      <div class="grid-2">
+        <div class="field"><label>Correo</label><input type="email" id="eq-correo"></div>
+        <div class="field"><label>Contraseña temporal</label><input type="text" id="eq-pass" placeholder="Mínimo 6 caracteres"></div>
+      </div>
+      <div class="field">
+        <label>Rol</label>
+        <select id="eq-rol">
+          <option value="colaborador">Colaborador — recibe compromisos</option>
+          <option value="lider">Líder — asigna compromisos</option>
+        </select>
+      </div>
+      <button class="btn-primary" id="btn-crear-usuario" style="max-width:220px;">Crear cuenta</button>
+      <div class="hint">Comparte el correo y esta contraseña con la persona para que inicie sesión. Puede cambiarla luego desde Firebase si lo necesitas.</div>
+    </div>
+    <div class="card">
+      <h3>Personas en ${currentUser.orgNombre} (${equipo.length})</h3>
+      <div class="equipo-list">
+        ${equipo.length===0 ? emptyState('Aún no has agregado a nadie.') : equipo.map(u=>`
+          <div class="equipo-item">
+            <div><span class="nombre">${escapeHtml(u.nombre)}</span><span class="correo">${escapeHtml(u.correo)}</span></div>
+            <span class="rol-tag rol-${u.rol}">${ROLE_LABEL[u.rol]||u.rol}</span>
+          </div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+async function crearUsuarioDesdeGerente(){
+  const msgBox = document.getElementById('equipo-msg');
+  msgBox.innerHTML = '';
+  const nombre = document.getElementById('eq-nombre').value.trim();
+  const correo = document.getElementById('eq-correo').value.trim();
+  const pass = document.getElementById('eq-pass').value;
+  const rol = document.getElementById('eq-rol').value;
+
+  if(!nombre || !correo || !pass){ msgBox.innerHTML = `<div class="error-msg">Completa todos los campos.</div>`; return; }
+  if(pass.length < 6){ msgBox.innerHTML = `<div class="error-msg">La contraseña debe tener al menos 6 caracteres.</div>`; return; }
+
+  const btn = document.getElementById('btn-crear-usuario');
+  btn.textContent = 'Creando...';
+
+  let secondaryApp;
+  try{
+    secondaryApp = initializeApp(firebaseConfig, 'Secondary-' + Date.now());
+    const secondaryAuth = getAuth(secondaryApp);
+    const cred = await createUserWithEmailAndPassword(secondaryAuth, correo, pass);
+
+    await setDoc(doc(db,'usuarios',cred.user.uid), {
+      nombre, correo, rol, orgCode: currentUser.orgCode,
+      creadoEn: serverTimestamp(), creadoPor: currentUser.uid
+    });
+
+    await signOut(secondaryAuth);
+    await deleteApp(secondaryApp);
+
+    msgBox.innerHTML = `<div class="success-msg">Cuenta creada para ${escapeHtml(nombre)}. Compártele el correo y la contraseña.</div>`;
+    document.getElementById('eq-nombre').value = '';
+    document.getElementById('eq-correo').value = '';
+    document.getElementById('eq-pass').value = '';
+  } catch(err){
+    if(secondaryApp){ try{ await deleteApp(secondaryApp); }catch(e){} }
+    msgBox.innerHTML = `<div class="error-msg">${traducirError(err.code)}</div>`;
+  }
+  btn.textContent = 'Crear cuenta';
+}
+
 // ---------- SHARED: COMPROMISO CARD ----------
 function compromisoCard(c, viewerRole){
   const fecha = c.fechaLimite ? new Date(c.fechaLimite+'T00:00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short',year:'numeric'}) : '—';
@@ -671,7 +842,7 @@ function compromisoCard(c, viewerRole){
       <div class="body"><span class="who">${cm.autorNombre}</span><span class="when">${cm.fecha||''}</span><div>${escapeHtml(cm.texto)}</div></div>
     </div>`).join('');
 
-  const canMark = viewerRole==='colaborador' && c.responsableUid===currentUser.uid && (c.estadoReal==='pendiente' || c.estadoReal==='vencido');
+  const canMark = viewerRole==='colaborador' && c.responsableUid===currentUser.uid && (c.estadoReal==='pendiente' || c.estadoReal==='incumplido');
   const canComment = viewerRole!=='gerente' ? true : true; // todos pueden comentar
 
   return `
