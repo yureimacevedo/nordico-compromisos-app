@@ -144,6 +144,7 @@
   .badge-cumplido{background:var(--purple-700); color:white;}
   .badge-no_cumplido{background:var(--pink-500); color:white;}
   .badge-incumplido{background:#FBEAF1; color:var(--danger); border:1px solid var(--danger);}
+  .badge-sin_habilitar{background:var(--lavender-100); color:var(--ink-400); border:1px dashed var(--ink-400);}
   .compromiso-desc{font-size:13.5px; color:var(--ink-600); margin-top:10px; line-height:1.5;}
   .compromiso-actions{display:flex; gap:8px; margin-top:14px;}
   .btn-mini{padding:7px 14px; border-radius:8px; font-size:12.5px; font-weight:600;}
@@ -529,11 +530,12 @@ function listenDatos(){
 }
 
 function computeEstado(c){
+  if(c.asignaRol==='lider' && !c.aprobado) return 'sin_habilitar';
   if(c.estado === 'cumplido' || c.estado === 'no_cumplido') return c.estado;
   if(c.fechaLimite && new Date(c.fechaLimite) < new Date(new Date().toDateString())) return 'incumplido';
   return 'pendiente';
 }
-const ESTADO_LABEL = { pendiente:'Pendiente', cumplido:'Cumplido', no_cumplido:'No cumplido', incumplido:'Incumplido' };
+const ESTADO_LABEL = { pendiente:'Pendiente', cumplido:'Cumplido', no_cumplido:'No cumplido', incumplido:'Incumplido', sin_habilitar:'Por habilitar' };
 
 // ---------- PAGE ROUTER ----------
 function renderPage(key){
@@ -554,7 +556,7 @@ function renderPage(key){
 // ---------- RESUMEN (administrador y gerente) ----------
 function pageResumen(){
   const list = allCompromisos.map(c=>({...c, estadoReal: computeEstado(c)}));
-  const counts = { pendiente:0, cumplido:0, no_cumplido:0, incumplido:0 };
+  const counts = { pendiente:0, cumplido:0, no_cumplido:0, incumplido:0, sin_habilitar:0 };
   list.forEach(c=> counts[c.estadoReal]++);
 
   const statCard = (label, num, color)=> `
@@ -567,11 +569,12 @@ function pageResumen(){
     <div class="page-header">
       <div><h1>Resumen general</h1><div class="sub">${currentUser.orgNombre} · ${list.length} compromisos en total</div></div>
     </div>
-    <div class="stats-row">
+    <div class="stats-row" style="grid-template-columns:repeat(5,1fr);">
       ${statCard('Pendientes', counts.pendiente, 'var(--purple-500)')}
       ${statCard('Cumplidos', counts.cumplido, 'var(--purple-700)')}
       ${statCard('No cumplidos', counts.no_cumplido, 'var(--pink-500)')}
       ${statCard('Incumplidos', counts.incumplido, 'var(--danger)')}
+      ${statCard('Por habilitar', counts.sin_habilitar, 'var(--ink-400)')}
     </div>
     <div class="card">
       <h3>Actividad reciente</h3>
@@ -634,6 +637,7 @@ function pageTodos(){
         <option value="cumplido">Cumplido</option>
         <option value="no_cumplido">No cumplido</option>
         <option value="incumplido">Incumplido</option>
+        <option value="sin_habilitar">Por habilitar</option>
       </select>
       <select id="f-asigno">
         <option value="todos">Quién asignó: todos</option>
@@ -770,6 +774,7 @@ async function crearCompromiso(){
     asignaUid: currentUser.uid, asignaNombre: currentUser.nombre, asignaRol: currentUser.rol,
     fechaInicio: inicio || fecha, fechaLimite: fecha,
     estado: 'pendiente',
+    aprobado: currentUser.rol !== 'lider',
     comentarios: [],
     creadoEn: serverTimestamp()
   });
@@ -789,7 +794,7 @@ function pageMisAsignados(){
 
 // ---------- MIS COMPROMISOS (líder y colaborador) ----------
 function pageMisTareas(){
-  const list = allCompromisos.filter(c=>c.responsableUid===currentUser.uid).map(c=>({...c, estadoReal: computeEstado(c)}));
+  const list = allCompromisos.filter(c=>c.responsableUid===currentUser.uid).map(c=>({...c, estadoReal: computeEstado(c)})).filter(c=>c.estadoReal!=='sin_habilitar');
   return `
     <div class="page-header">
       <div><h1>Mis compromisos</h1><div class="sub">${list.length} asignados a ti</div></div>
@@ -1059,7 +1064,7 @@ function pageReportes(){
     const grupos = {};
     list.forEach(c=>{
       const key = c[campoUid];
-      if(!grupos[key]) grupos[key] = { nombre: c[campoNombre], total:0, cumplido:0, no_cumplido:0, incumplido:0, pendiente:0 };
+      if(!grupos[key]) grupos[key] = { nombre: c[campoNombre], total:0, cumplido:0, no_cumplido:0, incumplido:0, pendiente:0, sin_habilitar:0 };
       grupos[key].total++;
       grupos[key][c.estadoReal]++;
     });
@@ -1112,6 +1117,24 @@ function compromisoCard(c){
     </div>`).join('');
 
   const canMark = c.responsableUid===currentUser.uid && (c.estadoReal==='pendiente' || c.estadoReal==='incumplido');
+  const puedeReagendar = (currentUser.rol==='gerente' || currentUser.rol==='administrador') && c.estadoReal!=='cumplido';
+  const puedeValidar = (currentUser.rol==='gerente' || currentUser.rol==='administrador') && c.asignaRol==='lider';
+
+  let validacionHtml = '';
+  if(c.asignaRol==='lider'){
+    if(puedeValidar){
+      validacionHtml = `
+        <div style="margin-top:12px; padding:12px 14px; background:${c.aprobado?'var(--lavender-50)':'#FBEAF1'}; border-radius:10px;">
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:${c.aprobado?'var(--purple-700)':'var(--danger)'};">
+            <input type="checkbox" ${c.aprobado?'checked':''} onchange="toggleAprobado('${c.id}', this.checked)">
+            ${c.aprobado ? 'Habilitado — el responsable ya lo puede ver' : 'Habilitar este compromiso'}
+          </label>
+          ${!c.aprobado ? `<div class="hint" style="margin-top:4px;">Mientras no lo habilites, ${escapeHtml(c.responsableNombre)} no lo verá ni podrá marcarlo.</div>` : ''}
+        </div>`;
+    } else if(!c.aprobado){
+      validacionHtml = `<div class="hint" style="margin-top:10px;">⏳ Este compromiso está esperando que la gerencia lo habilite.</div>`;
+    }
+  }
 
   return `
     <div class="compromiso">
@@ -1127,10 +1150,21 @@ function compromisoCard(c){
         <span class="badge badge-${c.estadoReal}">${ESTADO_LABEL[c.estadoReal]}</span>
       </div>
       ${c.descripcion ? `<div class="compromiso-desc">${escapeHtml(c.descripcion)}</div>` : ''}
-      ${canMark ? `
-        <div class="compromiso-actions">
+      ${validacionHtml}
+      <div class="compromiso-actions">
+        ${canMark ? `
           <button class="btn-mini btn-mini-purple" onclick="marcarEstado('${c.id}','cumplido')">Marcar cumplido</button>
           <button class="btn-mini btn-mini-pink" onclick="marcarEstado('${c.id}','no_cumplido')">Marcar no cumplido</button>
+        ` : ''}
+        ${puedeReagendar ? `<button class="btn-mini" style="background:var(--lavender-100); color:var(--purple-700);" onclick="toggleReagendar('${c.id}')">📅 Reagendar</button>` : ''}
+      </div>
+      ${puedeReagendar ? `
+        <div id="reagendar-${c.id}" class="hidden" style="margin-top:12px; padding:14px; background:var(--lavender-50); border-radius:10px;">
+          <div class="grid-2">
+            <div class="field" style="margin-bottom:8px;"><label>Nueva fecha de inicio</label><input type="date" id="re-inicio-${c.id}" value="${c.fechaInicio||c.fechaLimite||''}"></div>
+            <div class="field" style="margin-bottom:8px;"><label>Nueva fecha límite</label><input type="date" id="re-fecha-${c.id}" value="${c.fechaLimite||''}"></div>
+          </div>
+          <button class="btn-mini btn-mini-purple" onclick="guardarReagenda('${c.id}')">Guardar nueva fecha</button>
         </div>` : ''}
       <div class="comments">
         ${comentarios}
@@ -1141,6 +1175,30 @@ function compromisoCard(c){
       </div>
     </div>
   `;
+}
+
+window.toggleReagendar = function(id){
+  document.getElementById(`reagendar-${id}`).classList.toggle('hidden');
+}
+
+window.guardarReagenda = async function(id){
+  const inicio = document.getElementById(`re-inicio-${id}`).value;
+  const fecha = document.getElementById(`re-fecha-${id}`).value;
+  if(!fecha){ alert('Selecciona la nueva fecha límite.'); return; }
+  await updateDoc(doc(db,'compromisos',id), {
+    fechaInicio: inicio || fecha,
+    fechaLimite: fecha,
+    comentarios: arrayUnion({
+      autorUid: currentUser.uid,
+      autorNombre: currentUser.nombre,
+      texto: `Reagendado — nueva fecha límite: ${new Date(fecha+'T00:00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short',year:'numeric'})}`,
+      fecha: new Date().toLocaleDateString('es-CO',{day:'numeric',month:'short'})
+    })
+  });
+}
+
+window.toggleAprobado = async function(id, checked){
+  await updateDoc(doc(db,'compromisos',id), { aprobado: checked });
 }
 
 window.marcarEstado = async function(id, estado){
