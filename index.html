@@ -689,14 +689,15 @@ window.toggleFila = function(id){
 function pageCrear(){
   setTimeout(()=>{
     const btn = document.getElementById('btn-crear-compromiso');
-    if(btn) btn.onclick = ()=> crearCompromiso('colaborador');
+    if(btn) btn.onclick = crearCompromiso;
   },0);
 
   const colaboradores = orgUsuarios.filter(u=>u.rol==='colaborador');
+  const otrosLideres = orgUsuarios.filter(u=>u.rol==='lider' && u.uid!==currentUser.uid);
 
   return `
     <div class="page-header">
-      <div><h1>Crear compromiso</h1><div class="sub">Asígnalo a un colaborador de tu equipo, o a ti mismo</div></div>
+      <div><h1>Crear compromiso</h1><div class="sub">Asígnalo a un colaborador, a otro líder, o a ti mismo</div></div>
     </div>
     <div class="card">
       <div class="field"><label>Título del compromiso</label><input type="text" id="c-titulo" placeholder="Ej: Entregar informe de cartera"></div>
@@ -706,7 +707,12 @@ function pageCrear(){
         <select id="c-responsable">
           <option value="">Selecciona un responsable</option>
           <option value="${currentUser.uid}|${currentUser.nombre}|lider">Yo mismo (${currentUser.nombre})</option>
-          ${colaboradores.map(u=>`<option value="${u.uid}|${u.nombre}|colaborador">${u.nombre}</option>`).join('')}
+          ${otrosLideres.length>0 ? `<optgroup label="Líderes">
+            ${otrosLideres.map(u=>`<option value="${u.uid}|${u.nombre}|lider">${u.nombre}</option>`).join('')}
+          </optgroup>` : ''}
+          ${colaboradores.length>0 ? `<optgroup label="Colaboradores">
+            ${colaboradores.map(u=>`<option value="${u.uid}|${u.nombre}|colaborador">${u.nombre}</option>`).join('')}
+          </optgroup>` : ''}
         </select>
       </div>
       <div class="grid-2">
