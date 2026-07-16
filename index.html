@@ -65,40 +65,23 @@
   input,select,textarea{font-family:'Inter',sans-serif;}
 
   /* ---------- AUTH VIEW ---------- */
-  #auth-view{
-    min-height:100vh;
-    display:grid;
-    grid-template-columns:1fr 1fr;
-  }
+  #auth-view{ min-height:100vh; display:grid; grid-template-columns:1fr 1fr; }
   .auth-hero{
     background:linear-gradient(160deg, var(--purple-900) 0%, var(--purple-700) 55%, var(--pink-500) 130%);
-    color:white;
-    padding:64px 56px;
-    display:flex;
-    flex-direction:column;
-    justify-content:space-between;
-    position:relative;
-    overflow:hidden;
+    color:white; padding:64px 56px; display:flex; flex-direction:column; justify-content:space-between;
+    position:relative; overflow:hidden;
   }
   .auth-hero::after{
-    content:"";
-    position:absolute;
-    right:-120px; bottom:-120px;
-    width:360px; height:360px;
-    border-radius:50%;
-    background:radial-gradient(circle, rgba(255,255,255,0.14), transparent 70%);
+    content:""; position:absolute; right:-120px; bottom:-120px; width:360px; height:360px;
+    border-radius:50%; background:radial-gradient(circle, rgba(255,255,255,0.14), transparent 70%);
   }
   .auth-hero .brand{font-size:15px; letter-spacing:0.14em; text-transform:uppercase; opacity:0.85; font-weight:600;}
-  .auth-hero h1{font-size:42px; line-height:1.15; font-weight:700; max-width:460px; margin-top:28px;}
+  .auth-hero h1{font-size:40px; line-height:1.15; font-weight:700; max-width:460px; margin-top:28px;}
   .auth-hero p{margin-top:18px; font-size:16px; opacity:0.85; max-width:420px; line-height:1.6;}
-  .auth-hero .thread{
-    display:flex; align-items:center; gap:10px; margin-top:auto; font-size:13px; opacity:0.75;
-  }
+  .auth-hero .thread{display:flex; align-items:center; gap:10px; margin-top:auto; font-size:13px; opacity:0.75;}
   .auth-hero .dot{width:6px; height:6px; border-radius:50%; background:white;}
 
-  .auth-form-panel{
-    display:flex; align-items:center; justify-content:center; padding:40px;
-  }
+  .auth-form-panel{display:flex; align-items:center; justify-content:center; padding:40px;}
   .auth-card{width:100%; max-width:380px;}
   .auth-card h2{font-size:24px; margin-bottom:6px;}
   .auth-card .sub{color:var(--ink-600); font-size:14px; margin-bottom:28px;}
@@ -114,44 +97,35 @@
     font-weight:600; font-size:14px; margin-top:6px; transition:background 0.15s;
   }
   .btn-primary:hover{background:var(--purple-900);}
-  .btn-link{background:none; color:var(--purple-700); font-size:13px; font-weight:600; margin-top:18px; width:100%; text-align:center;}
   .auth-tabs{display:flex; gap:4px; background:var(--lavender-100); padding:4px; border-radius:10px; margin-bottom:24px;}
   .auth-tabs button{flex:1; padding:9px; border-radius:8px; font-size:13px; font-weight:600; background:none; color:var(--ink-600);}
   .auth-tabs button.active{background:var(--surface); color:var(--purple-700); box-shadow:var(--shadow);}
   .error-msg{background:#FBEAF1; color:var(--danger); padding:10px 14px; border-radius:8px; font-size:13px; margin-bottom:16px;}
+  .success-msg{background:var(--lavender-100); color:var(--purple-700); padding:10px 14px; border-radius:8px; font-size:13px; margin-bottom:16px;}
   .hint{font-size:12px; color:var(--ink-400); margin-top:6px; line-height:1.5;}
 
   /* ---------- APP VIEW ---------- */
   #app-view{display:grid; grid-template-columns:240px 1fr; min-height:100vh;}
-  aside{
-    background:linear-gradient(180deg, var(--purple-900), var(--purple-700));
-    color:white; padding:28px 20px; display:flex; flex-direction:column;
-  }
+  aside{ background:linear-gradient(180deg, var(--purple-900), var(--purple-700)); color:white; padding:28px 20px; display:flex; flex-direction:column; }
   aside .brand{font-family:'Sora',sans-serif; font-weight:700; font-size:18px; display:flex; align-items:center; gap:8px;}
   aside .brand .ring{width:10px; height:10px; border-radius:50%; background:var(--pink-400);}
   aside .role-tag{font-size:11px; text-transform:uppercase; letter-spacing:0.08em; opacity:0.65; margin-top:4px; margin-bottom:32px;}
   aside .org-name{font-size:13px; opacity:0.85; margin-bottom:2px;}
   nav{display:flex; flex-direction:column; gap:4px;}
-  nav button{
-    text-align:left; padding:10px 12px; border-radius:9px; background:none; color:rgba(255,255,255,0.8);
-    font-size:14px; font-weight:500;
-  }
+  nav button{ text-align:left; padding:10px 12px; border-radius:9px; background:none; color:rgba(255,255,255,0.8); font-size:14px; font-weight:500; }
   nav button.active{background:rgba(255,255,255,0.14); color:white; font-weight:600;}
   aside .spacer{flex:1;}
   aside .user-box{border-top:1px solid rgba(255,255,255,0.18); padding-top:16px;}
   aside .user-name{font-size:13px; font-weight:600;}
   aside .logout{font-size:12px; opacity:0.7; margin-top:6px; background:none; color:white; text-decoration:underline;}
 
-  main{padding:40px 48px; max-width:1100px;}
-  .page-header{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:28px;}
+  main{padding:40px 48px; max-width:1150px;}
+  .page-header{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:28px; flex-wrap:wrap; gap:12px;}
   .page-header h1{font-size:26px;}
   .page-header .sub{color:var(--ink-600); font-size:14px; margin-top:4px;}
 
   .stats-row{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:32px;}
-  .stat-card{
-    background:var(--surface); border-radius:var(--radius); padding:20px; box-shadow:var(--shadow);
-    display:flex; align-items:center; gap:14px;
-  }
+  .stat-card{ background:var(--surface); border-radius:var(--radius); padding:20px; box-shadow:var(--shadow); display:flex; align-items:center; gap:14px; }
   .ring-wrap{width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
   .stat-card .num{font-family:'Sora',sans-serif; font-size:22px; font-weight:700;}
   .stat-card .label{font-size:12px; color:var(--ink-600); margin-top:2px;}
@@ -159,20 +133,13 @@
   .card{background:var(--surface); border-radius:var(--radius); padding:24px; box-shadow:var(--shadow); margin-bottom:20px;}
   .card h3{font-size:16px; margin-bottom:18px;}
   .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .grid-3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;}
 
-  .btn-secondary{background:var(--lavender-100); color:var(--purple-700); padding:10px 18px; border-radius:9px; font-weight:600; font-size:13px;}
-  .btn-pink{background:var(--pink-500); color:white; padding:10px 18px; border-radius:9px; font-weight:600; font-size:13px;}
-
-  .compromiso{
-    border:1.5px solid var(--line); border-radius:12px; padding:18px 20px; margin-bottom:12px; background:var(--surface);
-  }
+  .compromiso{ border:1.5px solid var(--line); border-radius:12px; padding:18px 20px; margin-bottom:12px; background:var(--surface); }
   .compromiso-top{display:flex; justify-content:space-between; align-items:flex-start; gap:12px;}
   .compromiso-top h4{font-size:15px; font-weight:600;}
   .compromiso-meta{font-size:12.5px; color:var(--ink-600); margin-top:4px; display:flex; gap:14px; flex-wrap:wrap;}
-  .badge{
-    font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; text-transform:uppercase; letter-spacing:0.03em;
-    white-space:nowrap;
-  }
+  .badge{ font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; text-transform:uppercase; letter-spacing:0.03em; white-space:nowrap; }
   .badge-pendiente{background:var(--lavender-100); color:var(--purple-700);}
   .badge-cumplido{background:var(--purple-700); color:white;}
   .badge-no_cumplido{background:var(--pink-500); color:white;}
@@ -182,14 +149,10 @@
   .btn-mini{padding:7px 14px; border-radius:8px; font-size:12.5px; font-weight:600;}
   .btn-mini-purple{background:var(--purple-700); color:white;}
   .btn-mini-pink{background:var(--pink-500); color:white;}
-  .btn-mini-ghost{background:var(--lavender-100); color:var(--ink-600);}
 
   .comments{margin-top:14px; border-top:1px solid var(--line); padding-top:12px;}
   .comment{display:flex; gap:10px; margin-bottom:10px; font-size:13px;}
-  .comment .avatar{
-    width:26px; height:26px; border-radius:50%; background:linear-gradient(135deg,var(--purple-500),var(--pink-500));
-    color:white; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0;
-  }
+  .comment .avatar{ width:26px; height:26px; border-radius:50%; background:linear-gradient(135deg,var(--purple-500),var(--pink-500)); color:white; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; }
   .comment .body{background:var(--lavender-50); border-radius:10px; padding:8px 12px; flex:1;}
   .comment .who{font-weight:600; font-size:12px;}
   .comment .when{color:var(--ink-400); font-size:11px; margin-left:6px; font-weight:400;}
@@ -200,22 +163,15 @@
   .empty-state{text-align:center; padding:48px 20px; color:var(--ink-400);}
   .empty-state .big{font-size:32px; margin-bottom:8px;}
 
-  .app-footer{
-    text-align:center; font-size:11px; color:var(--ink-400);
-    padding:18px 0 4px 0; letter-spacing:0.01em;
-  }
-  .app-footer a{color:var(--purple-500); text-decoration:none;}
+  .app-footer{ text-align:center; font-size:11px; color:var(--ink-400); padding:18px 0 4px 0; letter-spacing:0.01em; }
 
   .filters{display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap;}
   .filters select{padding:8px 12px; border-radius:8px; border:1.5px solid var(--line); font-size:13px;}
 
   /* ---------- TABLA CUADRO GENERAL ---------- */
-  .tabla-wrap{background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden;}
+  .tabla-wrap{background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; overflow-x:auto;}
   table.tabla-compromisos{width:100%; border-collapse:collapse; font-size:13.5px;}
-  table.tabla-compromisos thead th{
-    text-align:left; padding:12px 16px; background:var(--lavender-100); color:var(--purple-700);
-    font-size:11.5px; text-transform:uppercase; letter-spacing:0.04em; font-weight:700;
-  }
+  table.tabla-compromisos thead th{ text-align:left; padding:12px 16px; background:var(--lavender-100); color:var(--purple-700); font-size:11.5px; text-transform:uppercase; letter-spacing:0.04em; font-weight:700; white-space:nowrap; }
   table.tabla-compromisos tbody tr{border-top:1px solid var(--line); cursor:pointer;}
   table.tabla-compromisos tbody tr:hover{background:var(--lavender-50);}
   table.tabla-compromisos td{padding:12px 16px; vertical-align:middle;}
@@ -223,17 +179,42 @@
   .detalle-row td{background:var(--lavender-50); padding:0 16px 16px 16px;}
 
   .equipo-list{margin-top:8px;}
-  .equipo-item{
-    display:flex; justify-content:space-between; align-items:center; padding:12px 16px;
-    border-top:1px solid var(--line); font-size:13.5px;
-  }
+  .equipo-item{ display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-top:1px solid var(--line); font-size:13.5px; flex-wrap:wrap; gap:8px; }
   .equipo-item:first-child{border-top:none;}
   .equipo-item .nombre{font-weight:600;}
   .equipo-item .correo{color:var(--ink-600); font-size:12.5px; margin-left:8px;}
+  .equipo-item .tags{display:flex; gap:6px; flex-wrap:wrap;}
   .rol-tag{font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; text-transform:uppercase;}
+  .rol-tag.rol-administrador{background:var(--purple-900); color:white;}
+  .rol-tag.rol-gerente{background:var(--pink-500); color:white;}
   .rol-tag.rol-lider{background:var(--lavender-100); color:var(--purple-700);}
   .rol-tag.rol-colaborador{background:#FBEAF1; color:var(--pink-500);}
-  .success-msg{background:var(--lavender-100); color:var(--purple-700); padding:10px 14px; border-radius:8px; font-size:13px; margin-bottom:16px;}
+  .cargo-tag{font-size:11px; font-weight:600; padding:3px 10px; border-radius:20px; background:var(--lavender-50); color:var(--ink-600); border:1px solid var(--line);}
+
+  .cargos-chips{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;}
+  .cargo-chip{ display:flex; align-items:center; gap:6px; background:var(--lavender-50); border:1px solid var(--line); padding:6px 10px 6px 14px; border-radius:20px; font-size:12.5px; color:var(--purple-700); font-weight:600; }
+  .cargo-chip button{ background:none; color:var(--ink-400); font-size:14px; line-height:1; padding:2px; }
+  .cargo-chip button:hover{color:var(--danger);}
+  .inline-add{display:flex; gap:8px;}
+  .inline-add input{flex:1;}
+
+  /* ---------- CRONOGRAMA ---------- */
+  .crono-wrap{background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); padding:20px; overflow-x:auto;}
+  .crono-row{display:grid; grid-template-columns:220px 1fr; gap:0; align-items:center; margin-bottom:6px;}
+  .crono-label{font-size:12.5px; padding-right:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .crono-label .sub-label{display:block; font-weight:400; color:var(--ink-400); font-size:11px;}
+  .crono-track{position:relative; height:28px; background:var(--lavender-50); border-radius:6px;}
+  .crono-bar{position:absolute; top:3px; bottom:3px; border-radius:6px; min-width:8px;}
+  .crono-headers{display:grid; grid-template-columns:220px 1fr; margin-bottom:10px;}
+  .crono-days{display:grid; font-size:10px; color:var(--ink-400); text-align:center;}
+
+  /* ---------- REPORTES ---------- */
+  table.tabla-reporte{width:100%; border-collapse:collapse; font-size:13px;}
+  table.tabla-reporte th{text-align:left; padding:10px 12px; color:var(--purple-700); font-size:11px; text-transform:uppercase; border-bottom:2px solid var(--line);}
+  table.tabla-reporte td{padding:10px 12px; border-bottom:1px solid var(--line);}
+  table.tabla-reporte td.num{text-align:center; font-family:'JetBrains Mono',monospace;}
+  .barra-cumpl{background:var(--lavender-100); border-radius:6px; height:8px; overflow:hidden; width:80px;}
+  .barra-cumpl-fill{background:var(--purple-700); height:100%;}
 
   @media (max-width:860px){
     #auth-view{grid-template-columns:1fr;}
@@ -243,6 +224,7 @@
     aside .spacer{display:none;}
     nav{flex-direction:row;}
     .stats-row{grid-template-columns:1fr 1fr;}
+    .grid-2, .grid-3{grid-template-columns:1fr;}
     main{padding:24px 20px;}
   }
 </style>
@@ -255,10 +237,10 @@
     <div>
       <div class="brand">Nórdico Compromisos</div>
       <h1>Los compromisos no se pierden en un chat. Quedan a la vista.</h1>
-      <p>Un espacio donde cada líder asigna, cada colaborador responde, y la gerencia ve el avance real. ¡Vamos cumpliendo con lo que nos comprometemos!</p>
+      <p>Un espacio donde el administrador organiza el equipo, cada líder asigna, cada colaborador responde, y la gerencia ve el avance real. ¡Vamos cumpliendo con lo que nos comprometemos!</p>
     </div>
     <div class="thread">
-      <span class="dot"></span> Líder asigna <span class="dot"></span> Colaborador responde <span class="dot"></span> Gerencia da seguimiento
+      <span class="dot"></span> Administrador organiza <span class="dot"></span> Líder asigna <span class="dot"></span> Colaborador responde <span class="dot"></span> Gerencia da seguimiento
     </div>
   </div>
 
@@ -266,7 +248,7 @@
     <div class="auth-card">
       <div class="auth-tabs">
         <button id="tab-login" class="active" onclick="switchTab('login')">Entrar</button>
-        <button id="tab-register" onclick="switchTab('register')">Crear cuenta</button>
+        <button id="tab-register" onclick="switchTab('register')">Crear organización</button>
       </div>
 
       <div id="error-box" class="error-msg hidden"></div>
@@ -282,24 +264,17 @@
 
       <!-- REGISTER -->
       <div id="register-form" class="hidden">
-        <h2>Crear cuenta</h2>
-        <div class="sub">Usa el código de tu cooperativa para unirte a su espacio.</div>
+        <h2>Crear tu organización</h2>
+        <div class="sub">Esto crea un espacio nuevo y te deja como administradora. Si tu cooperativa ya tiene un espacio, pide a tu administrador que te cree la cuenta.</div>
         <div class="field"><label>Nombre completo</label><input type="text" id="reg-name"></div>
         <div class="field"><label>Correo</label><input type="email" id="reg-email"></div>
         <div class="field"><label>Contraseña</label><input type="password" id="reg-pass"></div>
         <div class="field">
           <label>Código de organización</label>
           <input type="text" id="reg-orgcode" placeholder="Ej: COOPSUYA2026" style="text-transform:uppercase;">
-          <div class="hint" id="org-hint">Si el código no existe aún, se creará y quedarás como gerente de ese espacio.</div>
+          <div class="hint" id="org-hint">Elige un código único para tu cooperativa. Quedarás como administradora de ese espacio.</div>
         </div>
-        <div class="field hidden" id="role-field">
-          <label>Tu rol en este espacio</label>
-          <select id="reg-role">
-            <option value="lider">Líder — asigna compromisos</option>
-            <option value="colaborador">Colaborador — recibe compromisos</option>
-          </select>
-        </div>
-        <button class="btn-primary" onclick="doRegister()">Crear cuenta</button>
+        <button class="btn-primary" onclick="doRegister()">Crear organización</button>
       </div>
       <div class="app-footer">Nórdico Compromisos © 2026 Yureima Acevedo Arango</div>
     </div>
@@ -331,7 +306,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, collection,
-  query, where, onSnapshot, serverTimestamp, arrayUnion, orderBy
+  query, where, onSnapshot, serverTimestamp, arrayUnion, arrayRemove
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ============ REEMPLAZA CON TU CONFIGURACIÓN DE FIREBASE ============
@@ -349,12 +324,13 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-let currentUser = null;   // {uid, nombre, correo, rol, orgCode}
+let currentUser = null;   // {uid, nombre, correo, rol, cargo, orgCode, orgNombre}
 let currentPage = null;
 let unsubCompromisos = null;
 let allCompromisos = [];
-let orgColaboradores = [];
 let orgUsuarios = [];
+let orgCargos = [];
+let registrando = false;
 
 // ---------- AUTH TABS ----------
 window.switchTab = function(tab){
@@ -374,23 +350,19 @@ function hideError(){
   document.getElementById('error-box').classList.add('hidden');
 }
 
-// Check org code live to toggle role field
 document.getElementById('reg-orgcode').addEventListener('input', async (e)=>{
   const code = e.target.value.trim().toUpperCase();
-  const roleField = document.getElementById('role-field');
   const hint = document.getElementById('org-hint');
-  if(!code){ roleField.classList.add('hidden'); return; }
+  if(!code){ hint.textContent = 'Elige un código único para tu cooperativa. Quedarás como administradora de ese espacio.'; return; }
   const orgSnap = await getDoc(doc(db,'organizaciones',code));
   if(orgSnap.exists()){
-    roleField.classList.remove('hidden');
-    hint.textContent = `Te unes a "${orgSnap.data().nombre}". Elige tu rol.`;
+    hint.textContent = `Este código ya existe ("${orgSnap.data().nombre}"). Pide a tu administrador que te cree la cuenta desde "Equipo", o elige otro código.`;
   } else {
-    roleField.classList.add('hidden');
-    hint.textContent = 'Este código no existe aún: se creará y quedarás como gerente de ese espacio.';
+    hint.textContent = 'Este código está disponible: se creará el espacio y quedarás como administradora.';
   }
 });
 
-// ---------- REGISTER ----------
+// ---------- REGISTER (siempre crea una organización nueva, como administrador) ----------
 window.doRegister = async function(){
   hideError();
   const nombre = document.getElementById('reg-name').value.trim();
@@ -401,26 +373,28 @@ window.doRegister = async function(){
   if(!nombre || !correo || !pass || !orgCode){ showError('Completa todos los campos.'); return; }
   if(pass.length < 6){ showError('La contraseña debe tener al menos 6 caracteres.'); return; }
 
+  registrando = true;
   try{
     const orgRef = doc(db,'organizaciones',orgCode);
     const orgSnap = await getDoc(orgRef);
-    let rol;
     if(orgSnap.exists()){
-      rol = document.getElementById('reg-role').value;
-    } else {
-      rol = 'gerente';
+      registrando = false;
+      showError('Este código ya existe. Pide a tu administrador que te cree la cuenta, o elige otro código de organización.');
+      return;
     }
 
     const cred = await createUserWithEmailAndPassword(auth, correo, pass);
 
-    if(!orgSnap.exists()){
-      await setDoc(orgRef, { nombre: orgCode, creadoEn: serverTimestamp() });
-    }
+    await setDoc(orgRef, { nombre: orgCode, cargos: [], creadoEn: serverTimestamp() });
 
     await setDoc(doc(db,'usuarios',cred.user.uid), {
-      nombre, correo, rol, orgCode, creadoEn: serverTimestamp()
+      nombre, correo, rol: 'administrador', cargo: 'Administrador', orgCode, creadoEn: serverTimestamp()
     });
+
+    registrando = false;
+    await entrarComoUsuario(cred.user);
   } catch(err){
+    registrando = false;
     showError(traducirError(err.code));
   }
 }
@@ -456,19 +430,29 @@ function traducirError(code){
 }
 
 // ---------- AUTH STATE ----------
+async function entrarComoUsuario(user){
+  const uDoc = await getDoc(doc(db,'usuarios',user.uid));
+  if(!uDoc.exists()){
+    if(registrando) return;
+    await signOut(auth);
+    showError('No encontramos tu perfil. Si tu cuenta quedó incompleta por un error anterior, créala de nuevo con otro correo, o pide a tu administrador que te agregue desde "Equipo".');
+    return;
+  }
+  const data = uDoc.data();
+  currentUser = { uid: user.uid, nombre: data.nombre, correo: data.correo, rol: data.rol, cargo: data.cargo||'', orgCode: data.orgCode };
+  const orgDoc = await getDoc(doc(db,'organizaciones',data.orgCode));
+  currentUser.orgNombre = orgDoc.exists() ? orgDoc.data().nombre : data.orgCode;
+
+  document.getElementById('auth-view').classList.add('hidden');
+  document.getElementById('app-view').classList.remove('hidden');
+  initShell();
+  listenDatos();
+}
+
 onAuthStateChanged(auth, async (user)=>{
   if(user){
-    const uDoc = await getDoc(doc(db,'usuarios',user.uid));
-    if(!uDoc.exists()){ await signOut(auth); return; }
-    const data = uDoc.data();
-    currentUser = { uid: user.uid, nombre: data.nombre, correo: data.correo, rol: data.rol, orgCode: data.orgCode };
-    const orgDoc = await getDoc(doc(db,'organizaciones',data.orgCode));
-    currentUser.orgNombre = orgDoc.exists() ? orgDoc.data().nombre : data.orgCode;
-
-    document.getElementById('auth-view').classList.add('hidden');
-    document.getElementById('app-view').classList.remove('hidden');
-    initShell();
-    listenCompromisos();
+    if(registrando) return;
+    await entrarComoUsuario(user);
   } else {
     currentUser = null;
     document.getElementById('app-view').classList.add('hidden');
@@ -477,16 +461,17 @@ onAuthStateChanged(auth, async (user)=>{
 });
 
 // ---------- SHELL / NAV ----------
-const ROLE_LABEL = { gerente:'Gerente', lider:'Líder', colaborador:'Colaborador' };
+const ROLE_LABEL = { administrador:'Administrador', gerente:'Gerente', lider:'Líder', colaborador:'Colaborador' };
 const NAV = {
-  gerente: [ ['resumen','Resumen'], ['todos','Todos los compromisos'], ['equipo','Equipo'] ],
-  lider: [ ['crear','Crear compromiso'], ['misasignados','Lo que asigné'] ],
+  administrador: [ ['resumen','Resumen'], ['todos','Cuadro general'], ['cronograma','Cronograma'], ['reportes','Reportes'], ['asignar','Asignar compromiso'], ['equipo','Equipo y cargos'] ],
+  gerente: [ ['resumen','Resumen'], ['todos','Cuadro general'], ['cronograma','Cronograma'], ['reportes','Reportes'], ['asignar','Asignar a un líder'] ],
+  lider: [ ['crear','Crear compromiso'], ['misasignados','Lo que asigné'], ['mistareas','Mis compromisos'] ],
   colaborador: [ ['mistareas','Mis compromisos'] ]
 };
 
 function initShell(){
   document.getElementById('side-org').textContent = currentUser.orgNombre;
-  document.getElementById('side-role').textContent = ROLE_LABEL[currentUser.rol];
+  document.getElementById('side-role').textContent = ROLE_LABEL[currentUser.rol] + (currentUser.cargo ? ' · ' + currentUser.cargo : '');
   document.getElementById('side-user').textContent = currentUser.nombre;
 
   const nav = document.getElementById('side-nav');
@@ -508,21 +493,29 @@ function setActiveNav(key){
 }
 
 // ---------- DATA LISTENERS ----------
-function listenCompromisos(){
+function listenDatos(){
   const q = query(collection(db,'compromisos'), where('orgCode','==',currentUser.orgCode));
   unsubCompromisos = onSnapshot(q, (snap)=>{
     allCompromisos = [];
     snap.forEach(d=> allCompromisos.push({id:d.id, ...d.data()}));
     allCompromisos.sort((a,b)=> (b.creadoEn?.seconds||0) - (a.creadoEn?.seconds||0));
-    if(currentPage) renderPage(currentPage, true);
+    if(currentPage) renderPage(currentPage);
   });
 
   const qu = query(collection(db,'usuarios'), where('orgCode','==',currentUser.orgCode));
   onSnapshot(qu, (snap)=>{
     orgUsuarios = [];
     snap.forEach(d=> orgUsuarios.push({uid:d.id, ...d.data()}));
-    orgColaboradores = orgUsuarios.filter(u=>u.rol==='colaborador');
-    if(currentPage==='equipo' || currentPage==='crear') renderPage(currentPage);
+    if(currentPage) renderPage(currentPage);
+  });
+
+  onSnapshot(doc(db,'organizaciones',currentUser.orgCode), (snap)=>{
+    if(snap.exists()){
+      orgCargos = snap.data().cargos || [];
+      currentUser.orgNombre = snap.data().nombre || currentUser.orgCode;
+      document.getElementById('side-org').textContent = currentUser.orgNombre;
+      if(currentPage==='equipo') renderPage('equipo');
+    }
   });
 }
 
@@ -534,19 +527,22 @@ function computeEstado(c){
 const ESTADO_LABEL = { pendiente:'Pendiente', cumplido:'Cumplido', no_cumplido:'No cumplido', incumplido:'Incumplido' };
 
 // ---------- PAGE ROUTER ----------
-function renderPage(key, keepScroll){
+function renderPage(key){
   currentPage = key;
   setActiveNav(key);
   const main = document.getElementById('main-content');
   if(key==='resumen') main.innerHTML = pageResumen();
   else if(key==='todos') main.innerHTML = pageTodos();
   else if(key==='crear') main.innerHTML = pageCrear();
+  else if(key==='asignar') main.innerHTML = pageAsignar();
   else if(key==='misasignados') main.innerHTML = pageMisAsignados();
   else if(key==='mistareas') main.innerHTML = pageMisTareas();
   else if(key==='equipo') main.innerHTML = pageEquipo();
+  else if(key==='cronograma') main.innerHTML = pageCronograma();
+  else if(key==='reportes') main.innerHTML = pageReportes();
 }
 
-// ---------- GERENTE: RESUMEN ----------
+// ---------- RESUMEN (administrador y gerente) ----------
 function pageResumen(){
   const list = allCompromisos.map(c=>({...c, estadoReal: computeEstado(c)}));
   const counts = { pendiente:0, cumplido:0, no_cumplido:0, incumplido:0 };
@@ -554,9 +550,7 @@ function pageResumen(){
 
   const statCard = (label, num, color)=> `
     <div class="stat-card">
-      <div class="ring-wrap" style="background:${color}22;">
-        <div style="width:14px;height:14px;border-radius:50%;background:${color};"></div>
-      </div>
+      <div class="ring-wrap" style="background:${color}22;"><div style="width:14px;height:14px;border-radius:50%;background:${color};"></div></div>
       <div><div class="num">${num}</div><div class="label">${label}</div></div>
     </div>`;
 
@@ -572,23 +566,23 @@ function pageResumen(){
     </div>
     <div class="card">
       <h3>Actividad reciente</h3>
-      ${list.length===0 ? emptyState('Aún no hay compromisos registrados.') : list.slice(0,8).map(c=>compromisoCard(c,'gerente')).join('')}
+      ${list.length===0 ? emptyState('Aún no hay compromisos registrados.') : list.slice(0,8).map(c=>compromisoCard(c)).join('')}
     </div>
   `;
 }
 
-// ---------- GERENTE: TODOS (CUADRO GENERAL) ----------
+// ---------- CUADRO GENERAL (administrador y gerente) ----------
 const MES_NOMBRES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 let expandedRow = null;
 
 function pageTodos(){
   const list = allCompromisos.map(c=>({...c, estadoReal: computeEstado(c)}));
-  const lideres = [...new Set(list.map(c=>c.liderNombre))];
+  const asignadores = [...new Set(list.map(c=>c.asignaNombre))];
   const responsables = [...new Set(list.map(c=>c.responsableNombre))];
   const anios = [...new Set(list.filter(c=>c.fechaLimite).map(c=> c.fechaLimite.slice(0,4)))].sort();
 
   setTimeout(()=>{
-    ['f-estado','f-lider','f-asignado','f-mes','f-anio'].forEach(id=>{
+    ['f-estado','f-asigno','f-asignado','f-mes','f-anio'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.onchange = renderTablaFiltrada;
     });
@@ -597,14 +591,14 @@ function pageTodos(){
 
   function renderTablaFiltrada(){
     const est = document.getElementById('f-estado').value;
-    const lid = document.getElementById('f-lider').value;
+    const asigno = document.getElementById('f-asigno').value;
     const asig = document.getElementById('f-asignado').value;
     const mes = document.getElementById('f-mes').value;
     const anio = document.getElementById('f-anio').value;
 
     const filtered = list.filter(c=>{
       if(est!=='todos' && c.estadoReal!==est) return false;
-      if(lid!=='todos' && c.liderNombre!==lid) return false;
+      if(asigno!=='todos' && c.asignaNombre!==asigno) return false;
       if(asig!=='todos' && c.responsableNombre!==asig) return false;
       if(c.fechaLimite){
         if(mes!=='todos' && c.fechaLimite.slice(5,7)!==mes) return false;
@@ -622,7 +616,7 @@ function pageTodos(){
 
   return `
     <div class="page-header">
-      <div><h1>Cuadro general de compromisos</h1><div class="sub">Filtra por estado, líder, asignado, mes o año — haz click en una fila para ver el detalle</div></div>
+      <div><h1>Cuadro general de compromisos</h1><div class="sub">Filtra por estado, quién asignó, asignado, mes o año — click en una fila para ver el detalle</div></div>
     </div>
     <div class="filters">
       <select id="f-estado">
@@ -632,12 +626,12 @@ function pageTodos(){
         <option value="no_cumplido">No cumplido</option>
         <option value="incumplido">Incumplido</option>
       </select>
-      <select id="f-lider">
-        <option value="todos">Todos los líderes</option>
-        ${lideres.map(l=>`<option value="${l}">${l}</option>`).join('')}
+      <select id="f-asigno">
+        <option value="todos">Quién asignó: todos</option>
+        ${asignadores.map(l=>`<option value="${l}">${l}</option>`).join('')}
       </select>
       <select id="f-asignado">
-        <option value="todos">Todos los asignados</option>
+        <option value="todos">Asignado a: todos</option>
         ${responsables.map(r=>`<option value="${r}">${r}</option>`).join('')}
       </select>
       <select id="f-mes">
@@ -651,7 +645,7 @@ function pageTodos(){
     </div>
     <div class="tabla-wrap">
       <table class="tabla-compromisos">
-        <thead><tr><th>Compromiso</th><th>Asignado a</th><th>Líder</th><th>Fecha límite</th><th>Estado</th></tr></thead>
+        <thead><tr><th>Compromiso</th><th>Asignado a</th><th>Asignó</th><th>Fecha límite</th><th>Estado</th></tr></thead>
         <tbody id="tabla-body"></tbody>
       </table>
     </div>
@@ -665,11 +659,11 @@ function filaCompromiso(c){
     <tr onclick="toggleFila('${c.id}')">
       <td class="titulo-cell">${escapeHtml(c.titulo)}</td>
       <td>${escapeHtml(c.responsableNombre)}</td>
-      <td>${escapeHtml(c.liderNombre)}</td>
+      <td>${escapeHtml(c.asignaNombre)}</td>
       <td class="mono">${fecha}</td>
       <td><span class="badge badge-${c.estadoReal}">${ESTADO_LABEL[c.estadoReal]}</span></td>
     </tr>
-    ${isOpen ? `<tr class="detalle-row"><td colspan="5">${compromisoCard(c,'gerente')}</td></tr>` : ''}
+    ${isOpen ? `<tr class="detalle-row"><td colspan="5">${compromisoCard(c)}</td></tr>` : ''}
   `;
 }
 
@@ -678,31 +672,75 @@ window.toggleFila = function(id){
   window.renderTablaFiltrada();
 }
 
-// ---------- LIDER: CREAR ----------
+// ---------- LIDER: CREAR (asigna a un colaborador o a sí mismo) ----------
 function pageCrear(){
   setTimeout(()=>{
     const btn = document.getElementById('btn-crear-compromiso');
-    if(btn) btn.onclick = crearCompromiso;
+    if(btn) btn.onclick = ()=> crearCompromiso('colaborador');
   },0);
+
+  const colaboradores = orgUsuarios.filter(u=>u.rol==='colaborador');
 
   return `
     <div class="page-header">
-      <div><h1>Crear compromiso</h1><div class="sub">Asígnalo a un colaborador de tu equipo</div></div>
+      <div><h1>Crear compromiso</h1><div class="sub">Asígnalo a un colaborador de tu equipo, o a ti mismo</div></div>
     </div>
     <div class="card">
       <div class="field"><label>Título del compromiso</label><input type="text" id="c-titulo" placeholder="Ej: Entregar informe de cartera"></div>
       <div class="field"><label>Descripción</label><input type="text" id="c-desc" placeholder="Detalles, contexto o instrucciones"></div>
+      <div class="field">
+        <label>Responsable</label>
+        <select id="c-responsable">
+          <option value="">Selecciona un responsable</option>
+          <option value="${currentUser.uid}|${currentUser.nombre}|lider">Yo mismo (${currentUser.nombre})</option>
+          ${colaboradores.map(u=>`<option value="${u.uid}|${u.nombre}|colaborador">${u.nombre}</option>`).join('')}
+        </select>
+      </div>
       <div class="grid-2">
-        <div class="field">
-          <label>Responsable</label>
-          <select id="c-responsable">
-            <option value="">Selecciona un colaborador</option>
-            ${orgColaboradores.map(u=>`<option value="${u.uid}|${u.nombre}">${u.nombre}</option>`).join('')}
-          </select>
-        </div>
+        <div class="field"><label>Fecha de inicio</label><input type="date" id="c-inicio"></div>
         <div class="field"><label>Fecha límite</label><input type="date" id="c-fecha"></div>
       </div>
       <button class="btn-primary" id="btn-crear-compromiso" style="max-width:220px;">Crear compromiso</button>
+    </div>
+  `;
+}
+
+// ---------- GERENTE/ADMINISTRADOR: ASIGNAR ----------
+function pageAsignar(){
+  setTimeout(()=>{
+    const btn = document.getElementById('btn-asignar-compromiso');
+    if(btn) btn.onclick = ()=> crearCompromiso(currentUser.rol==='administrador' ? 'cualquiera' : 'lider');
+  },0);
+
+  const lideres = orgUsuarios.filter(u=>u.rol==='lider');
+  const colaboradores = orgUsuarios.filter(u=>u.rol==='colaborador');
+  const esAdmin = currentUser.rol==='administrador';
+
+  return `
+    <div class="page-header">
+      <div><h1>${esAdmin ? 'Asignar compromiso' : 'Asignar a un líder'}</h1>
+      <div class="sub">${esAdmin ? 'Puedes asignar a cualquier líder o colaborador' : 'Como gerente, puedes asignar compromisos a un líder'}</div></div>
+    </div>
+    <div class="card">
+      <div class="field"><label>Título del compromiso</label><input type="text" id="c-titulo" placeholder="Ej: Preparar presupuesto trimestral"></div>
+      <div class="field"><label>Descripción</label><input type="text" id="c-desc" placeholder="Detalles, contexto o instrucciones"></div>
+      <div class="field">
+        <label>Responsable</label>
+        <select id="c-responsable">
+          <option value="">Selecciona un responsable</option>
+          <optgroup label="Líderes">
+            ${lideres.map(u=>`<option value="${u.uid}|${u.nombre}|lider">${u.nombre}</option>`).join('')}
+          </optgroup>
+          ${esAdmin ? `<optgroup label="Colaboradores">
+            ${colaboradores.map(u=>`<option value="${u.uid}|${u.nombre}|colaborador">${u.nombre}</option>`).join('')}
+          </optgroup>` : ''}
+        </select>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label>Fecha de inicio</label><input type="date" id="c-inicio"></div>
+        <div class="field"><label>Fecha límite</label><input type="date" id="c-fecha"></div>
+      </div>
+      <button class="btn-primary" id="btn-asignar-compromiso" style="max-width:220px;">Asignar compromiso</button>
     </div>
   `;
 }
@@ -711,58 +749,78 @@ async function crearCompromiso(){
   const titulo = document.getElementById('c-titulo').value.trim();
   const desc = document.getElementById('c-desc').value.trim();
   const respVal = document.getElementById('c-responsable').value;
+  const inicio = document.getElementById('c-inicio').value;
   const fecha = document.getElementById('c-fecha').value;
   if(!titulo || !respVal || !fecha){ alert('Completa título, responsable y fecha límite.'); return; }
-  const [respUid, respNombre] = respVal.split('|');
+  const [respUid, respNombre, respRol] = respVal.split('|');
 
   await addDoc(collection(db,'compromisos'), {
     orgCode: currentUser.orgCode,
     titulo, descripcion: desc,
-    responsableUid: respUid, responsableNombre: respNombre,
-    liderUid: currentUser.uid, liderNombre: currentUser.nombre,
-    fechaLimite: fecha,
+    responsableUid: respUid, responsableNombre: respNombre, responsableRol: respRol,
+    asignaUid: currentUser.uid, asignaNombre: currentUser.nombre, asignaRol: currentUser.rol,
+    fechaInicio: inicio || fecha, fechaLimite: fecha,
     estado: 'pendiente',
     comentarios: [],
     creadoEn: serverTimestamp()
   });
-  renderPage('misasignados');
+  renderPage(currentUser.rol==='lider' ? 'misasignados' : 'todos');
 }
 
-// ---------- LIDER: MIS ASIGNADOS ----------
+// ---------- LIDER: LO QUE ASIGNÉ ----------
 function pageMisAsignados(){
-  const list = allCompromisos.filter(c=>c.liderUid===currentUser.uid).map(c=>({...c, estadoReal: computeEstado(c)}));
+  const list = allCompromisos.filter(c=>c.asignaUid===currentUser.uid).map(c=>({...c, estadoReal: computeEstado(c)}));
   return `
     <div class="page-header">
       <div><h1>Lo que asigné</h1><div class="sub">${list.length} compromisos creados por ti</div></div>
     </div>
-    ${list.length===0 ? emptyState('Aún no has creado compromisos.') : list.map(c=>compromisoCard(c,'lider')).join('')}
+    ${list.length===0 ? emptyState('Aún no has creado compromisos.') : list.map(c=>compromisoCard(c)).join('')}
   `;
 }
 
-// ---------- COLABORADOR: MIS TAREAS ----------
+// ---------- MIS COMPROMISOS (líder y colaborador) ----------
 function pageMisTareas(){
   const list = allCompromisos.filter(c=>c.responsableUid===currentUser.uid).map(c=>({...c, estadoReal: computeEstado(c)}));
   return `
     <div class="page-header">
       <div><h1>Mis compromisos</h1><div class="sub">${list.length} asignados a ti</div></div>
     </div>
-    ${list.length===0 ? emptyState('No tienes compromisos asignados todavía.') : list.map(c=>compromisoCard(c,'colaborador')).join('')}
+    ${list.length===0 ? emptyState('No tienes compromisos asignados todavía.') : list.map(c=>compromisoCard(c)).join('')}
   `;
 }
 
-// ---------- GERENTE: EQUIPO ----------
+// ---------- ADMINISTRADOR: EQUIPO Y CARGOS ----------
 function pageEquipo(){
   setTimeout(()=>{
-    const btn = document.getElementById('btn-crear-usuario');
-    if(btn) btn.onclick = crearUsuarioDesdeGerente;
+    const btnUser = document.getElementById('btn-crear-usuario');
+    if(btnUser) btnUser.onclick = crearUsuarioDesdeAdmin;
+    const btnCargo = document.getElementById('btn-add-cargo');
+    if(btnCargo) btnCargo.onclick = agregarCargo;
   },0);
 
   const equipo = orgUsuarios.filter(u=>u.uid!==currentUser.uid);
+  const cargoOptions = orgCargos.length===0
+    ? `<option value="">Primero agrega un cargo abajo</option>`
+    : orgCargos.map(c=>`<option value="${c}">${c}</option>`).join('');
 
   return `
     <div class="page-header">
-      <div><h1>Equipo</h1><div class="sub">Crea las cuentas de líderes y colaboradores de tu organización</div></div>
+      <div><h1>Equipo y cargos</h1><div class="sub">Define los cargos de tu cooperativa y crea las cuentas de tu equipo</div></div>
     </div>
+
+    <div class="card">
+      <h3>Cargos de ${currentUser.orgNombre}</h3>
+      <div class="inline-add">
+        <input type="text" id="nuevo-cargo" placeholder="Ej: Coordinador de Cartera">
+        <button class="btn-primary" id="btn-add-cargo" style="width:auto; padding:11px 18px;">Agregar</button>
+      </div>
+      <div class="cargos-chips">
+        ${orgCargos.length===0 ? `<span class="hint">Aún no has definido cargos.</span>` : orgCargos.map(c=>`
+          <span class="cargo-chip">${escapeHtml(c)} <button onclick="eliminarCargo('${escapeHtml(c)}')">✕</button></span>
+        `).join('')}
+      </div>
+    </div>
+
     <div class="card">
       <h3>Agregar persona</h3>
       <div id="equipo-msg"></div>
@@ -771,39 +829,66 @@ function pageEquipo(){
         <div class="field"><label>Correo</label><input type="email" id="eq-correo"></div>
         <div class="field"><label>Contraseña temporal</label><input type="text" id="eq-pass" placeholder="Mínimo 6 caracteres"></div>
       </div>
-      <div class="field">
-        <label>Rol</label>
-        <select id="eq-rol">
-          <option value="colaborador">Colaborador — recibe compromisos</option>
-          <option value="lider">Líder — asigna compromisos</option>
-        </select>
+      <div class="grid-2">
+        <div class="field">
+          <label>Rol en la app</label>
+          <select id="eq-rol">
+            <option value="colaborador">Colaborador — recibe compromisos</option>
+            <option value="lider">Líder — asigna compromisos</option>
+            <option value="gerente">Gerente — ve el avance, asigna a líderes</option>
+            <option value="administrador">Administrador — controla la app</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Cargo</label>
+          <select id="eq-cargo">${cargoOptions}</select>
+        </div>
       </div>
       <button class="btn-primary" id="btn-crear-usuario" style="max-width:220px;">Crear cuenta</button>
-      <div class="hint">Comparte el correo y esta contraseña con la persona para que inicie sesión. Puede cambiarla luego desde Firebase si lo necesitas.</div>
+      <div class="hint">Comparte el correo y esta contraseña con la persona para que inicie sesión.</div>
     </div>
+
     <div class="card">
       <h3>Personas en ${currentUser.orgNombre} (${equipo.length})</h3>
       <div class="equipo-list">
         ${equipo.length===0 ? emptyState('Aún no has agregado a nadie.') : equipo.map(u=>`
           <div class="equipo-item">
             <div><span class="nombre">${escapeHtml(u.nombre)}</span><span class="correo">${escapeHtml(u.correo)}</span></div>
-            <span class="rol-tag rol-${u.rol}">${ROLE_LABEL[u.rol]||u.rol}</span>
+            <div class="tags">
+              ${u.cargo ? `<span class="cargo-tag">${escapeHtml(u.cargo)}</span>` : ''}
+              <span class="rol-tag rol-${u.rol}">${ROLE_LABEL[u.rol]||u.rol}</span>
+            </div>
           </div>`).join('')}
       </div>
     </div>
   `;
 }
 
-async function crearUsuarioDesdeGerente(){
+window.eliminarCargo = async function(cargo){
+  await updateDoc(doc(db,'organizaciones',currentUser.orgCode), { cargos: arrayRemove(cargo) });
+}
+
+async function agregarCargo(){
+  const input = document.getElementById('nuevo-cargo');
+  const cargo = input.value.trim();
+  if(!cargo) return;
+  if(orgCargos.includes(cargo)){ input.value=''; return; }
+  await updateDoc(doc(db,'organizaciones',currentUser.orgCode), { cargos: arrayUnion(cargo) });
+  input.value = '';
+}
+
+async function crearUsuarioDesdeAdmin(){
   const msgBox = document.getElementById('equipo-msg');
   msgBox.innerHTML = '';
   const nombre = document.getElementById('eq-nombre').value.trim();
   const correo = document.getElementById('eq-correo').value.trim();
   const pass = document.getElementById('eq-pass').value;
   const rol = document.getElementById('eq-rol').value;
+  const cargo = document.getElementById('eq-cargo').value;
 
   if(!nombre || !correo || !pass){ msgBox.innerHTML = `<div class="error-msg">Completa todos los campos.</div>`; return; }
   if(pass.length < 6){ msgBox.innerHTML = `<div class="error-msg">La contraseña debe tener al menos 6 caracteres.</div>`; return; }
+  if(!cargo){ msgBox.innerHTML = `<div class="error-msg">Agrega y selecciona un cargo primero.</div>`; return; }
 
   const btn = document.getElementById('btn-crear-usuario');
   btn.textContent = 'Creando...';
@@ -815,7 +900,7 @@ async function crearUsuarioDesdeGerente(){
     const cred = await createUserWithEmailAndPassword(secondaryAuth, correo, pass);
 
     await setDoc(doc(db,'usuarios',cred.user.uid), {
-      nombre, correo, rol, orgCode: currentUser.orgCode,
+      nombre, correo, rol, cargo, orgCode: currentUser.orgCode,
       creadoEn: serverTimestamp(), creadoPor: currentUser.uid
     });
 
@@ -833,17 +918,138 @@ async function crearUsuarioDesdeGerente(){
   btn.textContent = 'Crear cuenta';
 }
 
+// ---------- CRONOGRAMA ----------
+const HOY = new Date();
+let cronoMes = HOY.getMonth()+1;
+let cronoAnio = HOY.getFullYear();
+const ESTADO_COLOR = { pendiente:'var(--purple-500)', cumplido:'var(--purple-700)', no_cumplido:'var(--pink-500)', incumplido:'var(--danger)' };
+
+function pageCronograma(){
+  setTimeout(()=>{
+    const selMes = document.getElementById('cr-mes');
+    const selAnio = document.getElementById('cr-anio');
+    if(selMes) selMes.onchange = (e)=>{ cronoMes = Number(e.target.value); renderPage('cronograma'); };
+    if(selAnio) selAnio.onchange = (e)=>{ cronoAnio = Number(e.target.value); renderPage('cronograma'); };
+  },0);
+
+  const diasEnMes = new Date(cronoAnio, cronoMes, 0).getDate();
+  const monthStart = new Date(cronoAnio, cronoMes-1, 1);
+  const monthEnd = new Date(cronoAnio, cronoMes-1, diasEnMes);
+
+  const list = allCompromisos
+    .map(c=>({...c, estadoReal: computeEstado(c)}))
+    .filter(c=>{
+      if(!c.fechaLimite) return false;
+      const ini = new Date((c.fechaInicio || c.fechaLimite)+'T00:00:00');
+      const fin = new Date(c.fechaLimite+'T00:00:00');
+      return fin >= monthStart && ini <= monthEnd;
+    });
+
+  const anioActual = HOY.getFullYear();
+  const anios = [anioActual-1, anioActual, anioActual+1];
+
+  const filas = list.map(c=>{
+    const ini = new Date((c.fechaInicio || c.fechaLimite)+'T00:00:00');
+    const fin = new Date(c.fechaLimite+'T00:00:00');
+    const startDay = ini < monthStart ? 1 : ini.getDate();
+    const endDay = fin > monthEnd ? diasEnMes : fin.getDate();
+    const pctStart = ((startDay-1)/diasEnMes)*100;
+    const pctWidth = ((endDay-startDay+1)/diasEnMes)*100;
+    return `
+      <div class="crono-row">
+        <div class="crono-label">${escapeHtml(c.titulo)}<span class="sub-label">${escapeHtml(c.responsableNombre)}</span></div>
+        <div class="crono-track">
+          <div class="crono-bar" style="left:${pctStart}%; width:${pctWidth}%; background:${ESTADO_COLOR[c.estadoReal]};" title="${ESTADO_LABEL[c.estadoReal]}"></div>
+        </div>
+      </div>`;
+  }).join('');
+
+  const dayHeaders = Array.from({length:diasEnMes}, (_,i)=>`<span>${i+1}</span>`).join('');
+
+  return `
+    <div class="page-header">
+      <div><h1>Cronograma</h1><div class="sub">Compromisos de ${MES_NOMBRES[cronoMes-1]} ${cronoAnio}, según su fecha de inicio y fecha límite</div></div>
+    </div>
+    <div class="filters">
+      <select id="cr-mes">
+        ${MES_NOMBRES.map((m,i)=>`<option value="${i+1}" ${i+1===cronoMes?'selected':''}>${m}</option>`).join('')}
+      </select>
+      <select id="cr-anio">
+        ${anios.map(a=>`<option value="${a}" ${a===cronoAnio?'selected':''}>${a}</option>`).join('')}
+      </select>
+    </div>
+    <div class="crono-wrap">
+      ${list.length===0 ? emptyState('No hay compromisos con fechas en este mes.') : `
+        <div class="crono-headers">
+          <div></div>
+          <div class="crono-days" style="grid-template-columns:repeat(${diasEnMes},1fr);">${dayHeaders}</div>
+        </div>
+        ${filas}
+      `}
+    </div>
+  `;
+}
+
+// ---------- REPORTES ----------
+function pageReportes(){
+  const list = allCompromisos.map(c=>({...c, estadoReal: computeEstado(c)}));
+
+  function tablaPor(campoUid, campoNombre){
+    const grupos = {};
+    list.forEach(c=>{
+      const key = c[campoUid];
+      if(!grupos[key]) grupos[key] = { nombre: c[campoNombre], total:0, cumplido:0, no_cumplido:0, incumplido:0, pendiente:0 };
+      grupos[key].total++;
+      grupos[key][c.estadoReal]++;
+    });
+    const filas = Object.values(grupos).sort((a,b)=> b.total - a.total);
+    if(filas.length===0) return emptyState('Sin datos todavía.');
+    return `
+      <table class="tabla-reporte">
+        <thead><tr><th>Nombre</th><th>Total</th><th>Cumplidos</th><th>Incumplidos</th><th>% cumplimiento</th></tr></thead>
+        <tbody>
+          ${filas.map(f=>{
+            const pct = f.total>0 ? Math.round((f.cumplido/f.total)*100) : 0;
+            return `<tr>
+              <td>${escapeHtml(f.nombre)}</td>
+              <td class="num">${f.total}</td>
+              <td class="num">${f.cumplido}</td>
+              <td class="num">${f.incumplido}</td>
+              <td><div class="barra-cumpl"><div class="barra-cumpl-fill" style="width:${pct}%;"></div></div><span style="font-size:11px; color:var(--ink-600);">${pct}%</span></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  return `
+    <div class="page-header">
+      <div><h1>Reportes</h1><div class="sub">${currentUser.orgNombre} · consolidado de ${list.length} compromisos</div></div>
+    </div>
+    <div class="card">
+      <h3>Por responsable</h3>
+      ${tablaPor('responsableUid','responsableNombre')}
+    </div>
+    <div class="card">
+      <h3>Por quién asignó</h3>
+      ${tablaPor('asignaUid','asignaNombre')}
+    </div>
+  `;
+}
+
 // ---------- SHARED: COMPROMISO CARD ----------
-function compromisoCard(c, viewerRole){
+function compromisoCard(c){
   const fecha = c.fechaLimite ? new Date(c.fechaLimite+'T00:00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short',year:'numeric'}) : '—';
+  const rangoFecha = (c.fechaInicio && c.fechaInicio!==c.fechaLimite)
+    ? `${new Date(c.fechaInicio+'T00:00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short'})} → ${fecha}`
+    : fecha;
   const comentarios = (c.comentarios||[]).map(cm=>`
     <div class="comment">
       <div class="avatar">${(cm.autorNombre||'?').charAt(0).toUpperCase()}</div>
       <div class="body"><span class="who">${cm.autorNombre}</span><span class="when">${cm.fecha||''}</span><div>${escapeHtml(cm.texto)}</div></div>
     </div>`).join('');
 
-  const canMark = viewerRole==='colaborador' && c.responsableUid===currentUser.uid && (c.estadoReal==='pendiente' || c.estadoReal==='incumplido');
-  const canComment = viewerRole!=='gerente' ? true : true; // todos pueden comentar
+  const canMark = c.responsableUid===currentUser.uid && (c.estadoReal==='pendiente' || c.estadoReal==='incumplido');
 
   return `
     <div class="compromiso">
@@ -852,8 +1058,8 @@ function compromisoCard(c, viewerRole){
           <h4>${escapeHtml(c.titulo)}</h4>
           <div class="compromiso-meta">
             <span>👤 ${escapeHtml(c.responsableNombre)}</span>
-            <span>🧭 Asignó: ${escapeHtml(c.liderNombre)}</span>
-            <span class="mono">📅 ${fecha}</span>
+            <span>🧭 Asignó: ${escapeHtml(c.asignaNombre)} (${ROLE_LABEL[c.asignaRol]||c.asignaRol})</span>
+            <span class="mono">📅 ${rangoFecha}</span>
           </div>
         </div>
         <span class="badge badge-${c.estadoReal}">${ESTADO_LABEL[c.estadoReal]}</span>
