@@ -227,6 +227,14 @@
     .grid-2, .grid-3{grid-template-columns:1fr;}
     main{padding:24px 20px;}
   }
+
+  @media print{
+    aside, .app-footer, .no-print{display:none !important;}
+    #app-view{display:block !important;}
+    main{padding:0; max-width:100%;}
+    .card{box-shadow:none; border:1px solid var(--line); break-inside:avoid;}
+    body{background:white;}
+  }
 </style>
 </head>
 <body>
@@ -331,6 +339,7 @@ let allCompromisos = [];
 let orgUsuarios = [];
 let orgCargos = [];
 let registrando = false;
+let editandoUid = null;
 
 // ---------- AUTH TABS ----------
 window.switchTab = function(tab){
@@ -851,17 +860,69 @@ function pageEquipo(){
     <div class="card">
       <h3>Personas en ${currentUser.orgNombre} (${equipo.length})</h3>
       <div class="equipo-list">
-        ${equipo.length===0 ? emptyState('Aún no has agregado a nadie.') : equipo.map(u=>`
+        ${equipo.length===0 ? emptyState('Aún no has agregado a nadie.') : equipo.map(u=> u.uid===editandoUid ? filaEdicionUsuario(u) : `
           <div class="equipo-item">
             <div><span class="nombre">${escapeHtml(u.nombre)}</span><span class="correo">${escapeHtml(u.correo)}</span></div>
             <div class="tags">
               ${u.cargo ? `<span class="cargo-tag">${escapeHtml(u.cargo)}</span>` : ''}
               <span class="rol-tag rol-${u.rol}">${ROLE_LABEL[u.rol]||u.rol}</span>
+              <button class="btn-mini btn-mini-purple" onclick="editarUsuario('${u.uid}')">Editar</button>
             </div>
           </div>`).join('')}
       </div>
     </div>
   `;
+}
+
+function filaEdicionUsuario(u){
+  const cargoOptions = orgCargos.map(c=>`<option value="${c}" ${c===u.cargo?'selected':''}>${c}</option>`).join('');
+  return `
+    <div class="equipo-item" style="flex-direction:column; align-items:stretch; background:var(--lavender-50); border-radius:10px; margin:8px 0; border-top:none;">
+      <div class="grid-2" style="margin-bottom:10px;">
+        <div class="field" style="margin-bottom:0;"><label>Nombre</label><input type="text" id="edit-nombre-${u.uid}" value="${escapeHtml(u.nombre)}"></div>
+        <div class="field" style="margin-bottom:0;"><label>Correo (no editable aquí)</label><input type="text" value="${escapeHtml(u.correo)}" disabled style="opacity:0.6;"></div>
+      </div>
+      <div class="grid-2" style="margin-bottom:10px;">
+        <div class="field" style="margin-bottom:0;">
+          <label>Rol</label>
+          <select id="edit-rol-${u.uid}">
+            <option value="colaborador" ${u.rol==='colaborador'?'selected':''}>Colaborador</option>
+            <option value="lider" ${u.rol==='lider'?'selected':''}>Líder</option>
+            <option value="gerente" ${u.rol==='gerente'?'selected':''}>Gerente</option>
+            <option value="administrador" ${u.rol==='administrador'?'selected':''}>Administrador</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Cargo</label>
+          <select id="edit-cargo-${u.uid}">${cargoOptions}</select>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-mini btn-mini-purple" onclick="guardarEdicionUsuario('${u.uid}')">Guardar</button>
+        <button class="btn-mini" style="background:var(--lavender-100); color:var(--ink-600);" onclick="cancelarEdicionUsuario()">Cancelar</button>
+      </div>
+    </div>
+  `;
+}
+
+window.editarUsuario = function(uid){
+  editandoUid = uid;
+  renderPage('equipo');
+}
+
+window.cancelarEdicionUsuario = function(){
+  editandoUid = null;
+  renderPage('equipo');
+}
+
+window.guardarEdicionUsuario = async function(uid){
+  const nombre = document.getElementById(`edit-nombre-${uid}`).value.trim();
+  const rol = document.getElementById(`edit-rol-${uid}`).value;
+  const cargo = document.getElementById(`edit-cargo-${uid}`).value;
+  if(!nombre){ alert('El nombre no puede quedar vacío.'); return; }
+  await updateDoc(doc(db,'usuarios',uid), { nombre, rol, cargo });
+  editandoUid = null;
+  renderPage('equipo');
 }
 
 window.eliminarCargo = async function(cargo){
@@ -1025,6 +1086,7 @@ function pageReportes(){
   return `
     <div class="page-header">
       <div><h1>Reportes</h1><div class="sub">${currentUser.orgNombre} · consolidado de ${list.length} compromisos</div></div>
+      <button class="btn-primary no-print" style="width:auto; padding:11px 20px;" onclick="window.print()">🖨️ Imprimir reporte</button>
     </div>
     <div class="card">
       <h3>Por responsable</h3>
