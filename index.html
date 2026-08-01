@@ -234,8 +234,10 @@
     #app-view{display:block !important;}
     main{padding:0; max-width:100%;}
     .card{box-shadow:none; border:1px solid var(--line); break-inside:avoid;}
+    .print-only{display:block !important;}
     body{background:white;}
   }
+  .print-only{display:none;}
 </style>
 </head>
 <body>
@@ -478,6 +480,7 @@ function traducirError(code){
 // ---------- AUTH STATE ----------
 async function entrarComoUsuario(user){
   const superSnap = await getDoc(doc(db,'superadmins',user.uid));
+  console.log('[Nórdico] UID de tu sesión:', user.uid, '| ¿Es superadmin?:', superSnap.exists());
   if(superSnap.exists()){
     esSuperadmin = true;
     superadminNombre = superSnap.data().nombre || user.email;
@@ -740,8 +743,13 @@ function pageTodos(){
   return `
     <div class="page-header">
       <div><h1>Cuadro general de compromisos</h1><div class="sub">Filtra por estado, quién asignó, asignado, mes o año — click en una fila para ver el detalle</div></div>
+      <div class="no-print" style="display:flex; gap:8px;">
+        <button style="background:var(--lavender-100); color:var(--purple-700); padding:11px 16px; border-radius:9px; font-weight:600; font-size:13px;" onclick="limpiarFiltrosTodos()">Limpiar filtros</button>
+        <button class="btn-primary" style="width:auto; padding:11px 18px;" onclick="window.print()">🖨️ Imprimir</button>
+      </div>
     </div>
-    <div class="filters">
+    <div class="print-only" style="margin-bottom:14px; font-size:12.5px; color:var(--ink-600);">${currentUser.orgNombre} · generado el ${new Date().toLocaleDateString('es-CO',{day:'numeric',month:'long',year:'numeric'})}</div>
+    <div class="filters no-print">
       <select id="f-estado">
         <option value="todos">Todos los estados</option>
         <option value="pendiente">Pendiente</option>
@@ -774,6 +782,14 @@ function pageTodos(){
       </table>
     </div>
   `;
+}
+
+window.limpiarFiltrosTodos = function(){
+  ['f-estado','f-asigno','f-asignado','f-mes','f-anio'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.value = 'todos';
+  });
+  window.renderTablaFiltrada();
 }
 
 function filaCompromiso(c){
@@ -1185,8 +1201,33 @@ function pageCronograma(){
 }
 
 // ---------- REPORTES ----------
+let reporteMes = 'todos';
+let reporteAnio = 'todos';
+let reporteEstado = 'todos';
+
 function pageReportes(){
-  const list = allCompromisos.map(c=>({...c, estadoReal: computeEstado(c)}));
+  const listaCompleta = allCompromisos.map(c=>({...c, estadoReal: computeEstado(c)}));
+  const anios = [...new Set(listaCompleta.filter(c=>c.fechaLimite).map(c=>c.fechaLimite.slice(0,4)))].sort();
+
+  const list = listaCompleta.filter(c=>{
+    if(reporteEstado!=='todos' && c.estadoReal!==reporteEstado) return false;
+    if(c.fechaLimite){
+      if(reporteMes!=='todos' && c.fechaLimite.slice(5,7)!==reporteMes) return false;
+      if(reporteAnio!=='todos' && c.fechaLimite.slice(0,4)!==reporteAnio) return false;
+    } else if(reporteMes!=='todos' || reporteAnio!=='todos'){
+      return false;
+    }
+    return true;
+  });
+
+  setTimeout(()=>{
+    const selMes = document.getElementById('rp-mes');
+    const selAnio = document.getElementById('rp-anio');
+    const selEstado = document.getElementById('rp-estado');
+    if(selMes) selMes.onchange = (e)=>{ reporteMes = e.target.value; renderPage('reportes'); };
+    if(selAnio) selAnio.onchange = (e)=>{ reporteAnio = e.target.value; renderPage('reportes'); };
+    if(selEstado) selEstado.onchange = (e)=>{ reporteEstado = e.target.value; renderPage('reportes'); };
+  },0);
 
   function tablaPor(campoUid, campoNombre){
     const grupos = {};
@@ -1197,7 +1238,7 @@ function pageReportes(){
       grupos[key][c.estadoReal]++;
     });
     const filas = Object.values(grupos).sort((a,b)=> b.total - a.total);
-    if(filas.length===0) return emptyState('Sin datos todavía.');
+    if(filas.length===0) return emptyState('Sin datos con este filtro.');
     return `
       <table class="tabla-reporte">
         <thead><tr><th>Nombre</th><th>Total</th><th>Cumplidos</th><th>Incumplidos</th><th>% cumplimiento</th></tr></thead>
@@ -1216,10 +1257,38 @@ function pageReportes(){
       </table>`;
   }
 
+  const filtroTexto = [
+    reporteEstado!=='todos' ? ESTADO_LABEL[reporteEstado] : null,
+    reporteMes!=='todos' ? MES_NOMBRES[Number(reporteMes)-1] : null,
+    reporteAnio!=='todos' ? reporteAnio : null
+  ].filter(Boolean).join(' · ') || 'sin filtros';
+
   return `
     <div class="page-header">
-      <div><h1>Reportes</h1><div class="sub">${currentUser.orgNombre} · consolidado de ${list.length} compromisos</div></div>
-      <button class="btn-primary no-print" style="width:auto; padding:11px 20px;" onclick="window.print()">🖨️ Imprimir reporte</button>
+      <div><h1>Reportes</h1><div class="sub">${currentUser.orgNombre} · ${list.length} de ${listaCompleta.length} compromisos</div></div>
+      <div class="no-print" style="display:flex; gap:8px;">
+        <button style="background:var(--lavender-100); color:var(--purple-700); padding:11px 16px; border-radius:9px; font-weight:600; font-size:13px;" onclick="limpiarFiltrosReportes()">Limpiar filtros</button>
+        <button class="btn-primary" style="width:auto; padding:11px 20px;" onclick="window.print()">🖨️ Imprimir reporte</button>
+      </div>
+    </div>
+    <div class="print-only" style="margin-bottom:14px; font-size:12.5px; color:var(--ink-600);">${currentUser.orgNombre} · filtro: ${filtroTexto} · generado el ${new Date().toLocaleDateString('es-CO',{day:'numeric',month:'long',year:'numeric'})}</div>
+    <div class="filters no-print">
+      <select id="rp-estado">
+        <option value="todos" ${reporteEstado==='todos'?'selected':''}>Todos los estados</option>
+        <option value="pendiente" ${reporteEstado==='pendiente'?'selected':''}>Pendiente</option>
+        <option value="cumplido" ${reporteEstado==='cumplido'?'selected':''}>Cumplido</option>
+        <option value="no_cumplido" ${reporteEstado==='no_cumplido'?'selected':''}>No cumplido</option>
+        <option value="incumplido" ${reporteEstado==='incumplido'?'selected':''}>Incumplido</option>
+        <option value="sin_habilitar" ${reporteEstado==='sin_habilitar'?'selected':''}>Por habilitar</option>
+      </select>
+      <select id="rp-mes">
+        <option value="todos" ${reporteMes==='todos'?'selected':''}>Todos los meses</option>
+        ${MES_NOMBRES.map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}" ${reporteMes===String(i+1).padStart(2,'0')?'selected':''}>${m}</option>`).join('')}
+      </select>
+      <select id="rp-anio">
+        <option value="todos" ${reporteAnio==='todos'?'selected':''}>Todos los años</option>
+        ${anios.map(a=>`<option value="${a}" ${reporteAnio===a?'selected':''}>${a}</option>`).join('')}
+      </select>
     </div>
     <div class="card">
       <h3>Por responsable</h3>
@@ -1230,6 +1299,11 @@ function pageReportes(){
       ${tablaPor('asignaUid','asignaNombre')}
     </div>
   `;
+}
+
+window.limpiarFiltrosReportes = function(){
+  reporteMes = 'todos'; reporteAnio = 'todos'; reporteEstado = 'todos';
+  renderPage('reportes');
 }
 
 // ---------- SHARED: COMPROMISO CARD ----------
