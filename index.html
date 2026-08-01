@@ -667,11 +667,37 @@ function renderPage(key){
   else if(key==='reportes') main.innerHTML = pageReportes();
 }
 
-// ---------- RESUMEN (administrador y gerente) ----------
+// ---------- CUADRO GENERAL (administrador y gerente) ----------
+let resumenMes = 'todos';
+let resumenAnio = 'todos';
+let resumenEstado = 'todos';
+
 function pageResumen(){
-  const list = allCompromisos.map(c=>({...c, estadoReal: computeEstado(c)}));
+  const listaCompleta = allCompromisos.map(c=>({...c, estadoReal: computeEstado(c)}));
+  const anios = [...new Set(listaCompleta.filter(c=>c.fechaLimite).map(c=>c.fechaLimite.slice(0,4)))].sort();
+
+  const list = listaCompleta.filter(c=>{
+    if(resumenEstado!=='todos' && c.estadoReal!==resumenEstado) return false;
+    if(c.fechaLimite){
+      if(resumenMes!=='todos' && c.fechaLimite.slice(5,7)!==resumenMes) return false;
+      if(resumenAnio!=='todos' && c.fechaLimite.slice(0,4)!==resumenAnio) return false;
+    } else if(resumenMes!=='todos' || resumenAnio!=='todos'){
+      return false;
+    }
+    return true;
+  });
+
   const counts = { pendiente:0, cumplido:0, no_cumplido:0, incumplido:0, sin_habilitar:0 };
   list.forEach(c=> counts[c.estadoReal]++);
+
+  setTimeout(()=>{
+    const selMes = document.getElementById('rs-mes');
+    const selAnio = document.getElementById('rs-anio');
+    const selEstado = document.getElementById('rs-estado');
+    if(selMes) selMes.onchange = (e)=>{ resumenMes = e.target.value; renderPage('resumen'); };
+    if(selAnio) selAnio.onchange = (e)=>{ resumenAnio = e.target.value; renderPage('resumen'); };
+    if(selEstado) selEstado.onchange = (e)=>{ resumenEstado = e.target.value; renderPage('resumen'); };
+  },0);
 
   const statCard = (label, num, color)=> `
     <div class="stat-card">
@@ -679,9 +705,38 @@ function pageResumen(){
       <div><div class="num">${num}</div><div class="label">${label}</div></div>
     </div>`;
 
+  const filtroTexto = [
+    resumenEstado!=='todos' ? ESTADO_LABEL[resumenEstado] : null,
+    resumenMes!=='todos' ? MES_NOMBRES[Number(resumenMes)-1] : null,
+    resumenAnio!=='todos' ? resumenAnio : null
+  ].filter(Boolean).join(' · ') || 'sin filtros';
+
   return `
     <div class="page-header">
-      <div><h1>Resumen general</h1><div class="sub">${currentUser.orgNombre} · ${list.length} compromisos en total</div></div>
+      <div><h1>Resumen general</h1><div class="sub">${currentUser.orgNombre} · ${list.length} de ${listaCompleta.length} compromisos</div></div>
+      <div class="no-print" style="display:flex; gap:8px;">
+        <button style="background:var(--lavender-100); color:var(--purple-700); padding:11px 16px; border-radius:9px; font-weight:600; font-size:13px;" onclick="limpiarFiltrosResumen()">Limpiar filtros</button>
+        <button class="btn-primary" style="width:auto; padding:11px 18px;" onclick="window.print()">🖨️ Imprimir</button>
+      </div>
+    </div>
+    <div class="print-only" style="margin-bottom:14px; font-size:12.5px; color:var(--ink-600);">${currentUser.orgNombre} · filtro: ${filtroTexto} · generado el ${new Date().toLocaleDateString('es-CO',{day:'numeric',month:'long',year:'numeric'})}</div>
+    <div class="filters no-print">
+      <select id="rs-estado">
+        <option value="todos" ${resumenEstado==='todos'?'selected':''}>Todos los estados</option>
+        <option value="pendiente" ${resumenEstado==='pendiente'?'selected':''}>Pendiente</option>
+        <option value="cumplido" ${resumenEstado==='cumplido'?'selected':''}>Cumplido</option>
+        <option value="no_cumplido" ${resumenEstado==='no_cumplido'?'selected':''}>No cumplido</option>
+        <option value="incumplido" ${resumenEstado==='incumplido'?'selected':''}>Incumplido</option>
+        <option value="sin_habilitar" ${resumenEstado==='sin_habilitar'?'selected':''}>Por habilitar</option>
+      </select>
+      <select id="rs-mes">
+        <option value="todos" ${resumenMes==='todos'?'selected':''}>Todos los meses</option>
+        ${MES_NOMBRES.map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}" ${resumenMes===String(i+1).padStart(2,'0')?'selected':''}>${m}</option>`).join('')}
+      </select>
+      <select id="rs-anio">
+        <option value="todos" ${resumenAnio==='todos'?'selected':''}>Todos los años</option>
+        ${anios.map(a=>`<option value="${a}" ${resumenAnio===a?'selected':''}>${a}</option>`).join('')}
+      </select>
     </div>
     <div class="stats-row" style="grid-template-columns:repeat(5,1fr);">
       ${statCard('Pendientes', counts.pendiente, 'var(--purple-500)')}
@@ -691,13 +746,16 @@ function pageResumen(){
       ${statCard('Por habilitar', counts.sin_habilitar, 'var(--ink-400)')}
     </div>
     <div class="card">
-      <h3>Actividad reciente</h3>
-      ${list.length===0 ? emptyState('Aún no hay compromisos registrados.') : list.slice(0,8).map(c=>compromisoCard(c)).join('')}
+      <h3>${filtroTexto==='sin filtros' ? 'Actividad reciente' : 'Compromisos con este filtro'}</h3>
+      ${list.length===0 ? emptyState('No hay compromisos con este filtro.') : list.slice(0,8).map(c=>compromisoCard(c)).join('')}
     </div>
   `;
 }
 
-// ---------- CUADRO GENERAL (administrador y gerente) ----------
+window.limpiarFiltrosResumen = function(){
+  resumenMes = 'todos'; resumenAnio = 'todos'; resumenEstado = 'todos';
+  renderPage('resumen');
+}
 const MES_NOMBRES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 let expandedRow = null;
 
