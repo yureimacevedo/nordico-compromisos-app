@@ -300,11 +300,42 @@
     <div class="spacer"></div>
     <div class="user-box">
       <div class="user-name" id="side-user">—</div>
+      <button class="logout hidden" id="btn-cambiar-org" onclick="volverASelector()">Cambiar de organización</button>
       <button class="logout" onclick="doLogout()">Cerrar sesión</button>
     </div>
   </aside>
   <main id="main-content"></main>
   <div class="app-footer" style="grid-column:2;">Nórdico Compromisos © 2026 Yureima Acevedo Arango — Consultora en Gestión Empresarial. Uso exclusivo bajo servicio de consultoría contratado.</div>
+</div>
+
+<!-- ====================== SELECTOR DE ORGANIZACIONES (super-administradora) ====================== -->
+<div id="selector-view" class="hidden" style="min-height:100vh; background:var(--lavender-50); padding:56px 24px; display:flex; justify-content:center;">
+  <div style="max-width:640px; width:100%;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:28px; flex-wrap:wrap; gap:10px;">
+      <div>
+        <div class="brand" style="color:var(--purple-700); display:flex; align-items:center; gap:8px; font-size:18px;">
+          <span style="width:10px;height:10px;border-radius:50%;background:var(--pink-500); display:inline-block;"></span>Nórdico Compromisos
+        </div>
+        <div style="font-size:13px; color:var(--ink-600); margin-top:4px;">Administradora general · <span id="sel-nombre"></span></div>
+      </div>
+      <button style="background:none; color:var(--purple-700); text-decoration:underline; font-size:13px;" onclick="doLogout()">Cerrar sesión</button>
+    </div>
+
+    <div class="card">
+      <h3>Crear nueva organización</h3>
+      <div id="selector-msg"></div>
+      <div class="grid-2">
+        <div class="field" style="margin-bottom:0;"><label>Nombre de la cooperativa</label><input type="text" id="sel-nueva-nombre" placeholder="Ej: Fundacoofisam"></div>
+        <div class="field" style="margin-bottom:0;"><label>Código</label><input type="text" id="sel-nuevo-codigo" placeholder="Ej: FUNDACOOFISAM" style="text-transform:uppercase;"></div>
+      </div>
+      <button class="btn-primary" id="btn-crear-org" style="max-width:220px; margin-top:14px;">Crear organización</button>
+    </div>
+
+    <div class="card">
+      <h3>Tus organizaciones</h3>
+      <div id="lista-orgs"></div>
+    </div>
+  </div>
 </div>
 
 <script type="module">
@@ -339,7 +370,11 @@ let unsubCompromisos = null;
 let allCompromisos = [];
 let orgUsuarios = [];
 let orgCargos = [];
+let orgRequiereHabilitacion = true;
 let registrando = false;
+let esSuperadmin = false;
+let superadminNombre = '';
+let unsubOrgsSelector = null;
 let editandoUid = null;
 
 // ---------- AUTH TABS ----------
@@ -395,7 +430,7 @@ window.doRegister = async function(){
 
     const cred = await createUserWithEmailAndPassword(auth, correo, pass);
 
-    await setDoc(orgRef, { nombre: orgCode, cargos: [], creadoEn: serverTimestamp() });
+    await setDoc(orgRef, { nombre: orgCode, cargos: [], requiereHabilitacion: true, creadoEn: serverTimestamp() });
 
     await setDoc(doc(db,'usuarios',cred.user.uid), {
       nombre, correo, rol: 'administrador', cargo: 'Administrador', orgCode, creadoEn: serverTimestamp()
@@ -424,6 +459,7 @@ window.doLogin = async function(){
 
 window.doLogout = async function(){
   if(unsubCompromisos) unsubCompromisos();
+  if(unsubOrgsSelector) unsubOrgsSelector();
   await signOut(auth);
 }
 
@@ -441,6 +477,14 @@ function traducirError(code){
 
 // ---------- AUTH STATE ----------
 async function entrarComoUsuario(user){
+  const superSnap = await getDoc(doc(db,'superadmins',user.uid));
+  if(superSnap.exists()){
+    esSuperadmin = true;
+    superadminNombre = superSnap.data().nombre || user.email;
+    mostrarSelectorOrganizaciones();
+    return;
+  }
+
   const uDoc = await getDoc(doc(db,'usuarios',user.uid));
   if(!uDoc.exists()){
     if(registrando) return;
@@ -459,13 +503,78 @@ async function entrarComoUsuario(user){
   listenDatos();
 }
 
+// ---------- SELECTOR DE ORGANIZACIONES (super-administradora) ----------
+function mostrarSelectorOrganizaciones(){
+  document.getElementById('auth-view').classList.add('hidden');
+  document.getElementById('app-view').classList.add('hidden');
+  document.getElementById('selector-view').classList.remove('hidden');
+  document.getElementById('sel-nombre').textContent = superadminNombre;
+
+  const btn = document.getElementById('btn-crear-org');
+  btn.onclick = crearOrgComoSuperadmin;
+
+  if(unsubOrgsSelector) unsubOrgsSelector();
+  unsubOrgsSelector = onSnapshot(collection(db,'organizaciones'), (snap)=>{
+    const orgs = [];
+    snap.forEach(d=> orgs.push({code:d.id, ...d.data()}));
+    orgs.sort((a,b)=> (a.nombre||a.code).localeCompare(b.nombre||b.code));
+    document.getElementById('lista-orgs').innerHTML = orgs.length===0
+      ? emptyState('Aún no hay organizaciones creadas.')
+      : orgs.map(o=>`
+        <div class="equipo-item">
+          <div><span class="nombre">${escapeHtml(o.nombre||o.code)}</span><span class="correo">${o.code}</span></div>
+          <button class="btn-mini btn-mini-purple" onclick="entrarAOrg('${o.code}')">Entrar</button>
+        </div>`).join('');
+  });
+}
+
+window.crearOrgComoSuperadmin = async function(){
+  const msgBox = document.getElementById('selector-msg');
+  msgBox.innerHTML = '';
+  const nombre = document.getElementById('sel-nueva-nombre').value.trim();
+  const codigo = document.getElementById('sel-nuevo-codigo').value.trim().toUpperCase();
+  if(!nombre || !codigo){ msgBox.innerHTML = `<div class="error-msg">Completa el nombre y el código.</div>`; return; }
+  const orgRef = doc(db,'organizaciones',codigo);
+  const orgSnap = await getDoc(orgRef);
+  if(orgSnap.exists()){ msgBox.innerHTML = `<div class="error-msg">Ese código ya existe.</div>`; return; }
+  await setDoc(orgRef, { nombre, cargos: [], requiereHabilitacion: true, creadoEn: serverTimestamp() });
+  document.getElementById('sel-nueva-nombre').value='';
+  document.getElementById('sel-nuevo-codigo').value='';
+  msgBox.innerHTML = `<div class="success-msg">Organización creada. Búscala abajo para entrar.</div>`;
+}
+
+window.entrarAOrg = async function(orgCode){
+  const orgSnap = await getDoc(doc(db,'organizaciones',orgCode));
+  if(unsubOrgsSelector){ unsubOrgsSelector(); unsubOrgsSelector=null; }
+  currentUser = {
+    uid: auth.currentUser.uid, nombre: superadminNombre, correo: auth.currentUser.email,
+    rol: 'administrador', cargo: 'Administradora general', orgCode,
+    orgNombre: orgSnap.exists() ? orgSnap.data().nombre : orgCode,
+    esSuperadmin: true
+  };
+  document.getElementById('selector-view').classList.add('hidden');
+  document.getElementById('app-view').classList.remove('hidden');
+  initShell();
+  listenDatos();
+}
+
+window.volverASelector = function(){
+  if(unsubCompromisos){ unsubCompromisos(); unsubCompromisos=null; }
+  currentUser = null;
+  document.getElementById('app-view').classList.add('hidden');
+  mostrarSelectorOrganizaciones();
+}
+
 onAuthStateChanged(auth, async (user)=>{
   if(user){
     if(registrando) return;
     await entrarComoUsuario(user);
   } else {
     currentUser = null;
+    esSuperadmin = false;
+    if(unsubOrgsSelector){ unsubOrgsSelector(); unsubOrgsSelector=null; }
     document.getElementById('app-view').classList.add('hidden');
+    document.getElementById('selector-view').classList.add('hidden');
     document.getElementById('auth-view').classList.remove('hidden');
   }
 });
@@ -483,6 +592,7 @@ function initShell(){
   document.getElementById('side-org').textContent = currentUser.orgNombre;
   document.getElementById('side-role').textContent = ROLE_LABEL[currentUser.rol] + (currentUser.cargo ? ' · ' + currentUser.cargo : '');
   document.getElementById('side-user').textContent = currentUser.nombre;
+  document.getElementById('btn-cambiar-org').classList.toggle('hidden', !currentUser.esSuperadmin);
 
   const nav = document.getElementById('side-nav');
   nav.innerHTML = '';
@@ -522,6 +632,7 @@ function listenDatos(){
   onSnapshot(doc(db,'organizaciones',currentUser.orgCode), (snap)=>{
     if(snap.exists()){
       orgCargos = snap.data().cargos || [];
+      orgRequiereHabilitacion = snap.data().requiereHabilitacion !== false;
       currentUser.orgNombre = snap.data().nombre || currentUser.orgCode;
       document.getElementById('side-org').textContent = currentUser.orgNombre;
       if(currentPage==='equipo') renderPage('equipo');
@@ -780,7 +891,7 @@ async function crearCompromiso(){
     asignaUid: currentUser.uid, asignaNombre: currentUser.nombre, asignaRol: currentUser.rol,
     fechaInicio: inicio || fecha, fechaLimite: fecha,
     estado: 'pendiente',
-    aprobado: currentUser.rol !== 'lider',
+    aprobado: currentUser.rol !== 'lider' || !orgRequiereHabilitacion,
     comentarios: [],
     creadoEn: serverTimestamp()
   });
@@ -816,6 +927,8 @@ function pageEquipo(){
     if(btnUser) btnUser.onclick = crearUsuarioDesdeAdmin;
     const btnCargo = document.getElementById('btn-add-cargo');
     if(btnCargo) btnCargo.onclick = agregarCargo;
+    const chkHab = document.getElementById('chk-requiere-habilitacion');
+    if(chkHab) chkHab.onchange = (e)=> updateDoc(doc(db,'organizaciones',currentUser.orgCode), { requiereHabilitacion: e.target.checked });
   },0);
 
   const equipo = orgUsuarios.filter(u=>u.uid!==currentUser.uid);
@@ -826,6 +939,15 @@ function pageEquipo(){
   return `
     <div class="page-header">
       <div><h1>Equipo y cargos</h1><div class="sub">Define los cargos de tu cooperativa y crea las cuentas de tu equipo</div></div>
+    </div>
+
+    <div class="card">
+      <h3>Control de lo que asignan los líderes</h3>
+      <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:600; color:var(--purple-700);">
+        <input type="checkbox" id="chk-requiere-habilitacion" ${orgRequiereHabilitacion?'checked':''}>
+        La gerencia debe habilitar los compromisos que asignan los líderes
+      </label>
+      <div class="hint">Si lo desactivas, lo que asignen los líderes queda visible y activo de inmediato para el responsable, sin esperar aprobación.</div>
     </div>
 
     <div class="card">
@@ -1127,7 +1249,7 @@ function compromisoCard(c){
   const puedeValidar = (currentUser.rol==='gerente' || currentUser.rol==='administrador') && c.asignaRol==='lider';
 
   let validacionHtml = '';
-  if(c.asignaRol==='lider'){
+  if(c.asignaRol==='lider' && orgRequiereHabilitacion){
     if(puedeValidar){
       validacionHtml = `
         <div style="margin-top:12px; padding:12px 14px; background:${c.aprobado?'var(--lavender-50)':'#FBEAF1'}; border-radius:10px;">
