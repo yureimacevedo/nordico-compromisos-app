@@ -33,6 +33,7 @@
 <title>Nórdico Compromisos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
   :root{
     --purple-900:#3D1B5E;
@@ -362,6 +363,14 @@ const firebaseConfig = {
 };
 // ======================================================================
 
+// ============ REEMPLAZA CON TU CONFIGURACIÓN DE EMAILJS ============
+const EMAILJS_PUBLIC_KEY = "nPf5o29sS_yHIMYnY";
+const EMAILJS_SERVICE_ID = "service_avj85gp";
+const EMAILJS_TEMPLATE_ID = "template_c8070o4";
+const DIAS_RECORDATORIO = 5;
+if(window.emailjs){ window.emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY }); }
+// ======================================================================
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -623,6 +632,7 @@ function listenDatos(){
     snap.forEach(d=> allCompromisos.push({id:d.id, ...d.data()}));
     allCompromisos.sort((a,b)=> (b.creadoEn?.seconds||0) - (a.creadoEn?.seconds||0));
     if(currentPage) renderPage(currentPage);
+    revisarRecordatorios();
   });
 
   const qu = query(collection(db,'usuarios'), where('orgCode','==',currentUser.orgCode));
@@ -630,6 +640,7 @@ function listenDatos(){
     orgUsuarios = [];
     snap.forEach(d=> orgUsuarios.push({uid:d.id, ...d.data()}));
     if(currentPage) renderPage(currentPage);
+    revisarRecordatorios();
   });
 
   onSnapshot(doc(db,'organizaciones',currentUser.orgCode), (snap)=>{
@@ -641,6 +652,44 @@ function listenDatos(){
       if(currentPage==='equipo') renderPage('equipo');
     }
   });
+}
+
+// ---------- CORREOS (EmailJS) ----------
+function buscarUsuarioPorUid(uid){
+  return orgUsuarios.find(u=>u.uid===uid) || null;
+}
+
+async function enviarCorreo(uid, asunto, mensaje, tituloCompromiso, fechaLimite){
+  try{
+    if(!window.emailjs || EMAILJS_SERVICE_ID==='TU_SERVICE_ID') return;
+    const persona = buscarUsuarioPorUid(uid);
+    if(!persona || !persona.correo) return;
+    await window.emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      to_email: persona.correo,
+      to_name: persona.nombre,
+      asunto,
+      mensaje,
+      titulo_compromiso: tituloCompromiso,
+      fecha_limite: fechaLimite ? new Date(fechaLimite+'T00:00:00').toLocaleDateString('es-CO',{day:'numeric',month:'long',year:'numeric'}) : '',
+      org_nombre: currentUser.orgNombre
+    });
+  } catch(err){
+    console.error('[Nórdico] Error enviando correo:', err);
+  }
+}
+
+async function revisarRecordatorios(){
+  const hoy = new Date(new Date().toDateString());
+  for(const c of allCompromisos){
+    if(!c.fechaLimite || c.recordatorioEnviado || c.aprobado===false) continue;
+    if(c.estado==='cumplido' || c.estado==='no_cumplido') continue;
+    const limite = new Date(c.fechaLimite+'T00:00:00');
+    const diffDias = Math.round((limite - hoy)/(1000*60*60*24));
+    if(diffDias>=0 && diffDias<=DIAS_RECORDATORIO){
+      await enviarCorreo(c.responsableUid, `Recordatorio: "${c.titulo}" vence pronto`, `Tienes un compromiso próximo a vencer.`, c.titulo, c.fechaLimite);
+      await updateDoc(doc(db,'compromisos',c.id), { recordatorioEnviado: true });
+    }
+  }
 }
 
 function computeEstado(c){
@@ -957,6 +1006,7 @@ async function crearCompromiso(){
   const fecha = document.getElementById('c-fecha').value;
   if(!titulo || !respVal || !fecha){ alert('Completa título, responsable y fecha límite.'); return; }
   const [respUid, respNombre, respRol] = respVal.split('|');
+  const aprobadoInicial = currentUser.rol !== 'lider' || !orgRequiereHabilitacion;
 
   await addDoc(collection(db,'compromisos'), {
     orgCode: currentUser.orgCode,
@@ -965,10 +1015,15 @@ async function crearCompromiso(){
     asignaUid: currentUser.uid, asignaNombre: currentUser.nombre, asignaRol: currentUser.rol,
     fechaInicio: inicio || fecha, fechaLimite: fecha,
     estado: 'pendiente',
-    aprobado: currentUser.rol !== 'lider' || !orgRequiereHabilitacion,
+    aprobado: aprobadoInicial,
     comentarios: [],
     creadoEn: serverTimestamp()
   });
+
+  if(aprobadoInicial && respUid!==currentUser.uid){
+    enviarCorreo(respUid, `Nuevo compromiso asignado: ${titulo}`, `${currentUser.nombre} te asignó un nuevo compromiso.`, titulo, fecha);
+  }
+
   renderPage(currentUser.rol==='lider' ? 'misasignados' : 'todos');
 }
 
@@ -1448,6 +1503,7 @@ window.guardarReagenda = async function(id){
   await updateDoc(doc(db,'compromisos',id), {
     fechaInicio: inicio || fecha,
     fechaLimite: fecha,
+    recordatorioEnviado: false,
     comentarios: arrayUnion({
       autorUid: currentUser.uid,
       autorNombre: currentUser.nombre,
@@ -1459,6 +1515,12 @@ window.guardarReagenda = async function(id){
 
 window.toggleAprobado = async function(id, checked){
   await updateDoc(doc(db,'compromisos',id), { aprobado: checked });
+  if(checked){
+    const c = allCompromisos.find(x=>x.id===id);
+    if(c && c.responsableUid!==currentUser.uid){
+      enviarCorreo(c.responsableUid, `Nuevo compromiso asignado: ${c.titulo}`, `${c.asignaNombre} te asignó un compromiso, ya habilitado por la gerencia.`, c.titulo, c.fechaLimite);
+    }
+  }
 }
 
 window.marcarEstado = async function(id, estado){
