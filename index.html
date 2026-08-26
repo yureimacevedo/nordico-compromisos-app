@@ -381,6 +381,7 @@ let unsubCompromisos = null;
 let allCompromisos = [];
 let orgUsuarios = [];
 let orgCargos = [];
+let orgProcesos = [];
 let orgRequiereHabilitacion = true;
 let registrando = false;
 let esSuperadmin = false;
@@ -441,7 +442,7 @@ window.doRegister = async function(){
 
     const cred = await createUserWithEmailAndPassword(auth, correo, pass);
 
-    await setDoc(orgRef, { nombre: orgCode, cargos: [], requiereHabilitacion: true, creadoEn: serverTimestamp() });
+    await setDoc(orgRef, { nombre: orgCode, cargos: [], procesos: [], requiereHabilitacion: true, creadoEn: serverTimestamp() });
 
     await setDoc(doc(db,'usuarios',cred.user.uid), {
       nombre, correo, rol: 'administrador', cargo: 'Administrador', orgCode, creadoEn: serverTimestamp()
@@ -549,7 +550,7 @@ window.crearOrgComoSuperadmin = async function(){
   const orgRef = doc(db,'organizaciones',codigo);
   const orgSnap = await getDoc(orgRef);
   if(orgSnap.exists()){ msgBox.innerHTML = `<div class="error-msg">Ese código ya existe.</div>`; return; }
-  await setDoc(orgRef, { nombre, cargos: [], requiereHabilitacion: true, creadoEn: serverTimestamp() });
+  await setDoc(orgRef, { nombre, cargos: [], procesos: [], requiereHabilitacion: true, creadoEn: serverTimestamp() });
   document.getElementById('sel-nueva-nombre').value='';
   document.getElementById('sel-nuevo-codigo').value='';
   msgBox.innerHTML = `<div class="success-msg">Organización creada. Búscala abajo para entrar.</div>`;
@@ -646,6 +647,7 @@ function listenDatos(){
   onSnapshot(doc(db,'organizaciones',currentUser.orgCode), (snap)=>{
     if(snap.exists()){
       orgCargos = snap.data().cargos || [];
+      orgProcesos = snap.data().procesos || [];
       orgRequiereHabilitacion = snap.data().requiereHabilitacion !== false;
       currentUser.orgNombre = snap.data().nombre || currentUser.orgCode;
       document.getElementById('side-org').textContent = currentUser.orgNombre;
@@ -720,13 +722,16 @@ function renderPage(key){
 let resumenMes = 'todos';
 let resumenAnio = 'todos';
 let resumenEstado = 'todos';
+let resumenProceso = 'todos';
 
 function pageResumen(){
   const listaCompleta = allCompromisos.map(c=>({...c, estadoReal: computeEstado(c)}));
   const anios = [...new Set(listaCompleta.filter(c=>c.fechaLimite).map(c=>c.fechaLimite.slice(0,4)))].sort();
+  const procesosDisponibles = [...new Set(listaCompleta.filter(c=>c.proceso).map(c=>c.proceso))];
 
   const list = listaCompleta.filter(c=>{
     if(resumenEstado!=='todos' && c.estadoReal!==resumenEstado) return false;
+    if(resumenProceso!=='todos' && c.proceso!==resumenProceso) return false;
     if(c.fechaLimite){
       if(resumenMes!=='todos' && c.fechaLimite.slice(5,7)!==resumenMes) return false;
       if(resumenAnio!=='todos' && c.fechaLimite.slice(0,4)!==resumenAnio) return false;
@@ -743,9 +748,11 @@ function pageResumen(){
     const selMes = document.getElementById('rs-mes');
     const selAnio = document.getElementById('rs-anio');
     const selEstado = document.getElementById('rs-estado');
+    const selProceso = document.getElementById('rs-proceso');
     if(selMes) selMes.onchange = (e)=>{ resumenMes = e.target.value; renderPage('resumen'); };
     if(selAnio) selAnio.onchange = (e)=>{ resumenAnio = e.target.value; renderPage('resumen'); };
     if(selEstado) selEstado.onchange = (e)=>{ resumenEstado = e.target.value; renderPage('resumen'); };
+    if(selProceso) selProceso.onchange = (e)=>{ resumenProceso = e.target.value; renderPage('resumen'); };
   },0);
 
   const statCard = (label, num, color)=> `
@@ -756,6 +763,7 @@ function pageResumen(){
 
   const filtroTexto = [
     resumenEstado!=='todos' ? ESTADO_LABEL[resumenEstado] : null,
+    resumenProceso!=='todos' ? resumenProceso : null,
     resumenMes!=='todos' ? MES_NOMBRES[Number(resumenMes)-1] : null,
     resumenAnio!=='todos' ? resumenAnio : null
   ].filter(Boolean).join(' · ') || 'sin filtros';
@@ -778,6 +786,10 @@ function pageResumen(){
         <option value="incumplido" ${resumenEstado==='incumplido'?'selected':''}>Incumplido</option>
         <option value="sin_habilitar" ${resumenEstado==='sin_habilitar'?'selected':''}>Por habilitar</option>
       </select>
+      ${procesosDisponibles.length>0 ? `<select id="rs-proceso">
+        <option value="todos" ${resumenProceso==='todos'?'selected':''}>Proceso: todos</option>
+        ${procesosDisponibles.map(p=>`<option value="${p}" ${resumenProceso===p?'selected':''}>${p}</option>`).join('')}
+      </select>` : ''}
       <select id="rs-mes">
         <option value="todos" ${resumenMes==='todos'?'selected':''}>Todos los meses</option>
         ${MES_NOMBRES.map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}" ${resumenMes===String(i+1).padStart(2,'0')?'selected':''}>${m}</option>`).join('')}
@@ -802,7 +814,7 @@ function pageResumen(){
 }
 
 window.limpiarFiltrosResumen = function(){
-  resumenMes = 'todos'; resumenAnio = 'todos'; resumenEstado = 'todos';
+  resumenMes = 'todos'; resumenAnio = 'todos'; resumenEstado = 'todos'; resumenProceso = 'todos';
   renderPage('resumen');
 }
 const MES_NOMBRES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -812,10 +824,11 @@ function pageTodos(){
   const list = allCompromisos.map(c=>({...c, estadoReal: computeEstado(c)}));
   const asignadores = [...new Set(list.map(c=>c.asignaNombre))];
   const responsables = [...new Set(list.map(c=>c.responsableNombre))];
+  const procesos = [...new Set(list.filter(c=>c.proceso).map(c=>c.proceso))];
   const anios = [...new Set(list.filter(c=>c.fechaLimite).map(c=> c.fechaLimite.slice(0,4)))].sort();
 
   setTimeout(()=>{
-    ['f-estado','f-asigno','f-asignado','f-mes','f-anio'].forEach(id=>{
+    ['f-estado','f-asigno','f-asignado','f-proceso','f-mes','f-anio'].forEach(id=>{
       const el = document.getElementById(id);
       if(el) el.onchange = renderTablaFiltrada;
     });
@@ -826,6 +839,8 @@ function pageTodos(){
     const est = document.getElementById('f-estado').value;
     const asigno = document.getElementById('f-asigno').value;
     const asig = document.getElementById('f-asignado').value;
+    const procEl = document.getElementById('f-proceso');
+    const proc = procEl ? procEl.value : 'todos';
     const mes = document.getElementById('f-mes').value;
     const anio = document.getElementById('f-anio').value;
 
@@ -833,6 +848,7 @@ function pageTodos(){
       if(est!=='todos' && c.estadoReal!==est) return false;
       if(asigno!=='todos' && c.asignaNombre!==asigno) return false;
       if(asig!=='todos' && c.responsableNombre!==asig) return false;
+      if(proc!=='todos' && c.proceso!==proc) return false;
       if(c.fechaLimite){
         if(mes!=='todos' && c.fechaLimite.slice(5,7)!==mes) return false;
         if(anio!=='todos' && c.fechaLimite.slice(0,4)!==anio) return false;
@@ -849,7 +865,7 @@ function pageTodos(){
 
   return `
     <div class="page-header">
-      <div><h1>Cuadro general de compromisos</h1><div class="sub">Filtra por estado, quién asignó, asignado, mes o año — click en una fila para ver el detalle</div></div>
+      <div><h1>Cuadro general de compromisos</h1><div class="sub">Filtra por estado, quién asignó, asignado, proceso, mes o año — click en una fila para ver el detalle</div></div>
       <div class="no-print" style="display:flex; gap:8px;">
         <button style="background:var(--lavender-100); color:var(--purple-700); padding:11px 16px; border-radius:9px; font-weight:600; font-size:13px;" onclick="limpiarFiltrosTodos()">Limpiar filtros</button>
         <button class="btn-primary" style="width:auto; padding:11px 18px;" onclick="window.print()">🖨️ Imprimir</button>
@@ -873,6 +889,10 @@ function pageTodos(){
         <option value="todos">Asignado a: todos</option>
         ${responsables.map(r=>`<option value="${r}">${r}</option>`).join('')}
       </select>
+      ${procesos.length>0 ? `<select id="f-proceso">
+        <option value="todos">Proceso: todos</option>
+        ${procesos.map(p=>`<option value="${p}">${p}</option>`).join('')}
+      </select>` : ''}
       <select id="f-mes">
         <option value="todos">Todos los meses</option>
         ${MES_NOMBRES.map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}">${m}</option>`).join('')}
@@ -892,7 +912,7 @@ function pageTodos(){
 }
 
 window.limpiarFiltrosTodos = function(){
-  ['f-estado','f-asigno','f-asignado','f-mes','f-anio'].forEach(id=>{
+  ['f-estado','f-asigno','f-asignado','f-proceso','f-mes','f-anio'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.value = 'todos';
   });
@@ -936,6 +956,14 @@ function pageCrear(){
     <div class="card">
       <div class="field"><label>Título del compromiso</label><input type="text" id="c-titulo" placeholder="Ej: Entregar informe de cartera"></div>
       <div class="field"><label>Descripción</label><input type="text" id="c-desc" placeholder="Detalles, contexto o instrucciones"></div>
+      ${orgProcesos.length>0 ? `
+      <div class="field">
+        <label>Proceso <span class="hint" style="font-weight:400;">(opcional)</span></label>
+        <select id="c-proceso">
+          <option value="">Sin proceso</option>
+          ${orgProcesos.map(p=>`<option value="${p}">${p}</option>`).join('')}
+        </select>
+      </div>` : ''}
       <div class="field">
         <label>Responsable</label>
         <select id="c-responsable">
@@ -977,6 +1005,14 @@ function pageAsignar(){
     <div class="card">
       <div class="field"><label>Título del compromiso</label><input type="text" id="c-titulo" placeholder="Ej: Preparar presupuesto trimestral"></div>
       <div class="field"><label>Descripción</label><input type="text" id="c-desc" placeholder="Detalles, contexto o instrucciones"></div>
+      ${orgProcesos.length>0 ? `
+      <div class="field">
+        <label>Proceso <span class="hint" style="font-weight:400;">(opcional)</span></label>
+        <select id="c-proceso">
+          <option value="">Sin proceso</option>
+          ${orgProcesos.map(p=>`<option value="${p}">${p}</option>`).join('')}
+        </select>
+      </div>` : ''}
       <div class="field">
         <label>Responsable</label>
         <select id="c-responsable">
@@ -1004,6 +1040,8 @@ async function crearCompromiso(){
   const respVal = document.getElementById('c-responsable').value;
   const inicio = document.getElementById('c-inicio').value;
   const fecha = document.getElementById('c-fecha').value;
+  const procesoEl = document.getElementById('c-proceso');
+  const proceso = procesoEl ? procesoEl.value : '';
   if(!titulo || !respVal || !fecha){ alert('Completa título, responsable y fecha límite.'); return; }
   const [respUid, respNombre, respRol] = respVal.split('|');
   const aprobadoInicial = currentUser.rol !== 'lider' || !orgRequiereHabilitacion;
@@ -1014,6 +1052,7 @@ async function crearCompromiso(){
     responsableUid: respUid, responsableNombre: respNombre, responsableRol: respRol,
     asignaUid: currentUser.uid, asignaNombre: currentUser.nombre, asignaRol: currentUser.rol,
     fechaInicio: inicio || fecha, fechaLimite: fecha,
+    proceso: proceso || null,
     estado: 'pendiente',
     aprobado: aprobadoInicial,
     comentarios: [],
@@ -1056,6 +1095,8 @@ function pageEquipo(){
     if(btnUser) btnUser.onclick = crearUsuarioDesdeAdmin;
     const btnCargo = document.getElementById('btn-add-cargo');
     if(btnCargo) btnCargo.onclick = agregarCargo;
+    const btnProceso = document.getElementById('btn-add-proceso');
+    if(btnProceso) btnProceso.onclick = agregarProceso;
     const chkHab = document.getElementById('chk-requiere-habilitacion');
     if(chkHab) chkHab.onchange = (e)=> updateDoc(doc(db,'organizaciones',currentUser.orgCode), { requiereHabilitacion: e.target.checked });
   },0);
@@ -1088,6 +1129,20 @@ function pageEquipo(){
       <div class="cargos-chips">
         ${orgCargos.length===0 ? `<span class="hint">Aún no has definido cargos.</span>` : orgCargos.map(c=>`
           <span class="cargo-chip">${escapeHtml(c)} <button onclick="eliminarCargo('${escapeHtml(c)}')">✕</button></span>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Procesos <span class="hint" style="font-weight:400;">(opcional)</span></h3>
+      <div class="hint" style="margin-bottom:10px;">Si tu cooperativa quiere clasificar los compromisos por proceso (ej. Cartera, Talento Humano, Comercial), defínelos aquí. Si no los usas, este campo simplemente no aparece al crear compromisos.</div>
+      <div class="inline-add">
+        <input type="text" id="nuevo-proceso" placeholder="Ej: Cartera">
+        <button class="btn-primary" id="btn-add-proceso" style="width:auto; padding:11px 18px;">Agregar</button>
+      </div>
+      <div class="cargos-chips">
+        ${orgProcesos.length===0 ? `<span class="hint">Aún no has definido procesos.</span>` : orgProcesos.map(p=>`
+          <span class="cargo-chip">${escapeHtml(p)} <button onclick="eliminarProceso('${escapeHtml(p)}')">✕</button></span>
         `).join('')}
       </div>
     </div>
@@ -1197,6 +1252,19 @@ async function agregarCargo(){
   if(!cargo) return;
   if(orgCargos.includes(cargo)){ input.value=''; return; }
   await updateDoc(doc(db,'organizaciones',currentUser.orgCode), { cargos: arrayUnion(cargo) });
+  input.value = '';
+}
+
+window.eliminarProceso = async function(proceso){
+  await updateDoc(doc(db,'organizaciones',currentUser.orgCode), { procesos: arrayRemove(proceso) });
+}
+
+async function agregarProceso(){
+  const input = document.getElementById('nuevo-proceso');
+  const proceso = input.value.trim();
+  if(!proceso) return;
+  if(orgProcesos.includes(proceso)){ input.value=''; return; }
+  await updateDoc(doc(db,'organizaciones',currentUser.orgCode), { procesos: arrayUnion(proceso) });
   input.value = '';
 }
 
@@ -1317,13 +1385,16 @@ function pageCronograma(){
 let reporteMes = 'todos';
 let reporteAnio = 'todos';
 let reporteEstado = 'todos';
+let reporteProceso = 'todos';
 
 function pageReportes(){
   const listaCompleta = allCompromisos.map(c=>({...c, estadoReal: computeEstado(c)}));
   const anios = [...new Set(listaCompleta.filter(c=>c.fechaLimite).map(c=>c.fechaLimite.slice(0,4)))].sort();
+  const procesosDisponibles = [...new Set(listaCompleta.filter(c=>c.proceso).map(c=>c.proceso))];
 
   const list = listaCompleta.filter(c=>{
     if(reporteEstado!=='todos' && c.estadoReal!==reporteEstado) return false;
+    if(reporteProceso!=='todos' && c.proceso!==reporteProceso) return false;
     if(c.fechaLimite){
       if(reporteMes!=='todos' && c.fechaLimite.slice(5,7)!==reporteMes) return false;
       if(reporteAnio!=='todos' && c.fechaLimite.slice(0,4)!==reporteAnio) return false;
@@ -1337,9 +1408,11 @@ function pageReportes(){
     const selMes = document.getElementById('rp-mes');
     const selAnio = document.getElementById('rp-anio');
     const selEstado = document.getElementById('rp-estado');
+    const selProceso = document.getElementById('rp-proceso');
     if(selMes) selMes.onchange = (e)=>{ reporteMes = e.target.value; renderPage('reportes'); };
     if(selAnio) selAnio.onchange = (e)=>{ reporteAnio = e.target.value; renderPage('reportes'); };
     if(selEstado) selEstado.onchange = (e)=>{ reporteEstado = e.target.value; renderPage('reportes'); };
+    if(selProceso) selProceso.onchange = (e)=>{ reporteProceso = e.target.value; renderPage('reportes'); };
   },0);
 
   function tablaPor(campoUid, campoNombre){
@@ -1372,6 +1445,7 @@ function pageReportes(){
 
   const filtroTexto = [
     reporteEstado!=='todos' ? ESTADO_LABEL[reporteEstado] : null,
+    reporteProceso!=='todos' ? reporteProceso : null,
     reporteMes!=='todos' ? MES_NOMBRES[Number(reporteMes)-1] : null,
     reporteAnio!=='todos' ? reporteAnio : null
   ].filter(Boolean).join(' · ') || 'sin filtros';
@@ -1394,6 +1468,10 @@ function pageReportes(){
         <option value="incumplido" ${reporteEstado==='incumplido'?'selected':''}>Incumplido</option>
         <option value="sin_habilitar" ${reporteEstado==='sin_habilitar'?'selected':''}>Por habilitar</option>
       </select>
+      ${procesosDisponibles.length>0 ? `<select id="rp-proceso">
+        <option value="todos" ${reporteProceso==='todos'?'selected':''}>Proceso: todos</option>
+        ${procesosDisponibles.map(p=>`<option value="${p}" ${reporteProceso===p?'selected':''}>${p}</option>`).join('')}
+      </select>` : ''}
       <select id="rp-mes">
         <option value="todos" ${reporteMes==='todos'?'selected':''}>Todos los meses</option>
         ${MES_NOMBRES.map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}" ${reporteMes===String(i+1).padStart(2,'0')?'selected':''}>${m}</option>`).join('')}
@@ -1411,11 +1489,16 @@ function pageReportes(){
       <h3>Por quién asignó</h3>
       ${tablaPor('asignaUid','asignaNombre')}
     </div>
+    ${procesosDisponibles.length>0 ? `
+    <div class="card">
+      <h3>Por proceso</h3>
+      ${tablaPor('proceso','proceso')}
+    </div>` : ''}
   `;
 }
 
 window.limpiarFiltrosReportes = function(){
-  reporteMes = 'todos'; reporteAnio = 'todos'; reporteEstado = 'todos';
+  reporteMes = 'todos'; reporteAnio = 'todos'; reporteEstado = 'todos'; reporteProceso = 'todos';
   renderPage('reportes');
 }
 
@@ -1460,6 +1543,7 @@ function compromisoCard(c){
             <span>👤 ${escapeHtml(c.responsableNombre)}</span>
             <span>🧭 Asignó: ${escapeHtml(c.asignaNombre)} (${ROLE_LABEL[c.asignaRol]||c.asignaRol})</span>
             <span class="mono">📅 ${rangoFecha}</span>
+            ${c.proceso ? `<span class="cargo-tag">${escapeHtml(c.proceso)}</span>` : ''}
           </div>
         </div>
         <span class="badge badge-${c.estadoReal}">${ESTADO_LABEL[c.estadoReal]}</span>
