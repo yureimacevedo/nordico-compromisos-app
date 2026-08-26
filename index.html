@@ -249,10 +249,10 @@
     <div>
       <div class="brand">Nórdico Compromisos</div>
       <h1>Los compromisos no se pierden en un chat. Quedan a la vista.</h1>
-      <p>Un espacio donde el administrador organiza el equipo, cada líder asigna, cada colaborador responde, y la gerencia ve el avance real. ¡Vamos cumpliendo con lo que nos comprometemos!</p>
+      <p>Un espacio donde el administrador organiza el equipo, cada asignador asigna, cada colaborador responde, y la administración de área ve el avance real. ¡Vamos cumpliendo con lo que nos comprometemos!</p>
     </div>
     <div class="thread">
-      <span class="dot"></span> Administrador organiza <span class="dot"></span> Líder asigna <span class="dot"></span> Colaborador responde <span class="dot"></span> Gerencia da seguimiento
+      <span class="dot"></span> Administrador organiza <span class="dot"></span> Asignador asigna <span class="dot"></span> Colaborador responde <span class="dot"></span> Admon Área da seguimiento
     </div>
   </div>
 
@@ -593,10 +593,10 @@ onAuthStateChanged(auth, async (user)=>{
 });
 
 // ---------- SHELL / NAV ----------
-const ROLE_LABEL = { administrador:'Administrador', gerente:'Gerente', lider:'Líder', colaborador:'Colaborador' };
+const ROLE_LABEL = { administrador:'Administrador', gerente:'Admon Área', lider:'Asignador', colaborador:'Colaborador' };
 const NAV = {
   administrador: [ ['resumen','Resumen'], ['todos','Cuadro general'], ['cronograma','Cronograma'], ['reportes','Reportes'], ['asignar','Asignar compromiso'], ['equipo','Equipo y cargos'] ],
-  gerente: [ ['resumen','Resumen'], ['todos','Cuadro general'], ['cronograma','Cronograma'], ['reportes','Reportes'], ['asignar','Asignar a un líder'] ],
+  gerente: [ ['resumen','Resumen'], ['todos','Cuadro general'], ['cronograma','Cronograma'], ['reportes','Reportes'], ['asignar','Asignar compromiso'] ],
   lider: [ ['crear','Crear compromiso'], ['misasignados','Lo que asigné'], ['mistareas','Mis compromisos'] ],
   colaborador: [ ['mistareas','Mis compromisos'] ]
 };
@@ -951,7 +951,7 @@ function pageCrear(){
 
   return `
     <div class="page-header">
-      <div><h1>Crear compromiso</h1><div class="sub">Asígnalo a un colaborador, a otro líder, o a ti mismo</div></div>
+      <div><h1>Crear compromiso</h1><div class="sub">Asígnalo a un colaborador, a otro asignador, o a ti mismo</div></div>
     </div>
     <div class="card">
       <div class="field"><label>Título del compromiso</label><input type="text" id="c-titulo" placeholder="Ej: Entregar informe de cartera"></div>
@@ -969,7 +969,7 @@ function pageCrear(){
         <select id="c-responsable">
           <option value="">Selecciona un responsable</option>
           <option value="${currentUser.uid}|${currentUser.nombre}|lider">Yo mismo (${currentUser.nombre})</option>
-          ${otrosLideres.length>0 ? `<optgroup label="Líderes">
+          ${otrosLideres.length>0 ? `<optgroup label="Asignadores">
             ${otrosLideres.map(u=>`<option value="${u.uid}|${u.nombre}|lider">${u.nombre}</option>`).join('')}
           </optgroup>` : ''}
           ${colaboradores.length>0 ? `<optgroup label="Colaboradores">
@@ -999,8 +999,8 @@ function pageAsignar(){
 
   return `
     <div class="page-header">
-      <div><h1>${esAdmin ? 'Asignar compromiso' : 'Asignar a un líder'}</h1>
-      <div class="sub">${esAdmin ? 'Puedes asignar a cualquier líder o colaborador' : 'Como gerente, puedes asignar compromisos a un líder'}</div></div>
+      <div><h1>Asignar compromiso</h1>
+      <div class="sub">Puedes asignar a cualquier asignador o colaborador</div></div>
     </div>
     <div class="card">
       <div class="field"><label>Título del compromiso</label><input type="text" id="c-titulo" placeholder="Ej: Preparar presupuesto trimestral"></div>
@@ -1017,12 +1017,13 @@ function pageAsignar(){
         <label>Responsable</label>
         <select id="c-responsable">
           <option value="">Selecciona un responsable</option>
-          <optgroup label="Líderes">
+          <option value="${currentUser.uid}|${currentUser.nombre}|${currentUser.rol}">Yo mismo (${currentUser.nombre})</option>
+          <optgroup label="Asignadores">
             ${lideres.map(u=>`<option value="${u.uid}|${u.nombre}|lider">${u.nombre}</option>`).join('')}
           </optgroup>
-          ${esAdmin ? `<optgroup label="Colaboradores">
+          <optgroup label="Colaboradores">
             ${colaboradores.map(u=>`<option value="${u.uid}|${u.nombre}|colaborador">${u.nombre}</option>`).join('')}
-          </optgroup>` : ''}
+          </optgroup>
         </select>
       </div>
       <div class="grid-2">
@@ -1112,12 +1113,12 @@ function pageEquipo(){
     </div>
 
     <div class="card">
-      <h3>Control de lo que asignan los líderes</h3>
+      <h3>Control de lo que asignan los asignadores</h3>
       <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:600; color:var(--purple-700);">
         <input type="checkbox" id="chk-requiere-habilitacion" ${orgRequiereHabilitacion?'checked':''}>
-        La gerencia debe habilitar los compromisos que asignan los líderes
+        La administración de área debe habilitar los compromisos que asignan los asignadores
       </label>
-      <div class="hint">Si lo desactivas, lo que asignen los líderes queda visible y activo de inmediato para el responsable, sin esperar aprobación.</div>
+      <div class="hint">Si lo desactivas, lo que asignen los asignadores queda visible y activo de inmediato para el responsable, sin esperar aprobación.</div>
     </div>
 
     <div class="card">
@@ -1160,8 +1161,8 @@ function pageEquipo(){
           <label>Rol en la app</label>
           <select id="eq-rol">
             <option value="colaborador">Colaborador — recibe compromisos</option>
-            <option value="lider">Líder — asigna compromisos</option>
-            <option value="gerente">Gerente — ve el avance, asigna a líderes</option>
+            <option value="lider">Asignador — asigna compromisos</option>
+            <option value="gerente">Admon Área — ve el avance, asigna compromisos</option>
             <option value="administrador">Administrador — controla la app</option>
           </select>
         </div>
@@ -1204,8 +1205,8 @@ function filaEdicionUsuario(u){
           <label>Rol</label>
           <select id="edit-rol-${u.uid}">
             <option value="colaborador" ${u.rol==='colaborador'?'selected':''}>Colaborador</option>
-            <option value="lider" ${u.rol==='lider'?'selected':''}>Líder</option>
-            <option value="gerente" ${u.rol==='gerente'?'selected':''}>Gerente</option>
+            <option value="lider" ${u.rol==='lider'?'selected':''}>Asignador</option>
+            <option value="gerente" ${u.rol==='gerente'?'selected':''}>Admon Área</option>
             <option value="administrador" ${u.rol==='administrador'?'selected':''}>Administrador</option>
           </select>
         </div>
@@ -1530,7 +1531,7 @@ function compromisoCard(c){
           ${!c.aprobado ? `<div class="hint" style="margin-top:4px;">Mientras no lo habilites, ${escapeHtml(c.responsableNombre)} no lo verá ni podrá marcarlo.</div>` : ''}
         </div>`;
     } else if(!c.aprobado){
-      validacionHtml = `<div class="hint" style="margin-top:10px;">⏳ Este compromiso está esperando que la gerencia lo habilite.</div>`;
+      validacionHtml = `<div class="hint" style="margin-top:10px;">⏳ Este compromiso está esperando que lo habilite la administración de área.</div>`;
     }
   }
 
@@ -1602,7 +1603,7 @@ window.toggleAprobado = async function(id, checked){
   if(checked){
     const c = allCompromisos.find(x=>x.id===id);
     if(c && c.responsableUid!==currentUser.uid){
-      enviarCorreo(c.responsableUid, `Nuevo compromiso asignado: ${c.titulo}`, `${c.asignaNombre} te asignó un compromiso, ya habilitado por la gerencia.`, c.titulo, c.fechaLimite);
+      enviarCorreo(c.responsableUid, `Nuevo compromiso asignado: ${c.titulo}`, `${c.asignaNombre} te asignó un compromiso, ya habilitado por la administración de área.`, c.titulo, c.fechaLimite);
     }
   }
 }
