@@ -442,7 +442,7 @@ window.doRegister = async function(){
 
     const cred = await createUserWithEmailAndPassword(auth, correo, pass);
 
-    await setDoc(orgRef, { nombre: orgCode, cargos: [], procesos: [], requiereHabilitacion: true, creadoEn: serverTimestamp() });
+    await setDoc(orgRef, { nombre: orgCode, cargos: [], procesos: [], requiereHabilitacion: true, activa: true, creadoEn: serverTimestamp() });
 
     await setDoc(doc(db,'usuarios',cred.user.uid), {
       nombre, correo, rol: 'administrador', cargo: 'Administrador', orgCode, creadoEn: serverTimestamp()
@@ -506,8 +506,13 @@ async function entrarComoUsuario(user){
     return;
   }
   const data = uDoc.data();
-  currentUser = { uid: user.uid, nombre: data.nombre, correo: data.correo, rol: data.rol, cargo: data.cargo||'', orgCode: data.orgCode };
   const orgDoc = await getDoc(doc(db,'organizaciones',data.orgCode));
+  if(orgDoc.exists() && orgDoc.data().activa===false){
+    await signOut(auth);
+    showError('Esta organización fue desactivada. Si crees que esto es un error, contacta a tu administrador.');
+    return;
+  }
+  currentUser = { uid: user.uid, nombre: data.nombre, correo: data.correo, rol: data.rol, cargo: data.cargo||'', orgCode: data.orgCode };
   currentUser.orgNombre = orgDoc.exists() ? orgDoc.data().nombre : data.orgCode;
 
   document.getElementById('auth-view').classList.add('hidden');
@@ -533,12 +538,24 @@ function mostrarSelectorOrganizaciones(){
     orgs.sort((a,b)=> (a.nombre||a.code).localeCompare(b.nombre||b.code));
     document.getElementById('lista-orgs').innerHTML = orgs.length===0
       ? emptyState('Aún no hay organizaciones creadas.')
-      : orgs.map(o=>`
+      : orgs.map(o=>{
+          const activa = o.activa !== false;
+          return `
         <div class="equipo-item">
-          <div><span class="nombre">${escapeHtml(o.nombre||o.code)}</span><span class="correo">${o.code}</span></div>
-          <button class="btn-mini btn-mini-purple" onclick="entrarAOrg('${o.code}')">Entrar</button>
-        </div>`).join('');
+          <div><span class="nombre">${escapeHtml(o.nombre||o.code)}</span><span class="correo">${o.code}</span>
+            ${!activa ? `<span class="rol-tag" style="background:var(--lavender-100); color:var(--ink-400); margin-left:8px;">Desactivada</span>` : ''}
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn-mini" style="background:${activa?'#FBEAF1':'var(--lavender-100)'}; color:${activa?'var(--danger)':'var(--purple-700)'};" onclick="toggleOrgActiva('${o.code}', ${activa})">${activa?'Desactivar':'Activar'}</button>
+            <button class="btn-mini btn-mini-purple" onclick="entrarAOrg('${o.code}')">Entrar</button>
+          </div>
+        </div>`;
+        }).join('');
   });
+}
+
+window.toggleOrgActiva = async function(orgCode, estabaActiva){
+  await updateDoc(doc(db,'organizaciones',orgCode), { activa: !estabaActiva });
 }
 
 window.crearOrgComoSuperadmin = async function(){
@@ -550,7 +567,7 @@ window.crearOrgComoSuperadmin = async function(){
   const orgRef = doc(db,'organizaciones',codigo);
   const orgSnap = await getDoc(orgRef);
   if(orgSnap.exists()){ msgBox.innerHTML = `<div class="error-msg">Ese código ya existe.</div>`; return; }
-  await setDoc(orgRef, { nombre, cargos: [], procesos: [], requiereHabilitacion: true, creadoEn: serverTimestamp() });
+  await setDoc(orgRef, { nombre, cargos: [], procesos: [], requiereHabilitacion: true, activa: true, creadoEn: serverTimestamp() });
   document.getElementById('sel-nueva-nombre').value='';
   document.getElementById('sel-nuevo-codigo').value='';
   msgBox.innerHTML = `<div class="success-msg">Organización creada. Búscala abajo para entrar.</div>`;
