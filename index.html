@@ -218,6 +218,16 @@
   .barra-cumpl{background:var(--lavender-100); border-radius:6px; height:8px; overflow:hidden; width:80px;}
   .barra-cumpl-fill{background:var(--purple-700); height:100%;}
 
+  .avance-wrap{margin-top:12px;}
+  .avance-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;}
+  .avance-label{font-size:12px; font-weight:600; color:var(--ink-600);}
+  .avance-pct{font-size:12px; font-weight:700; color:var(--purple-700); font-family:'JetBrains Mono',monospace;}
+  .avance-track{background:var(--lavender-100); border-radius:8px; height:10px; overflow:hidden;}
+  .avance-fill{background:linear-gradient(90deg,var(--purple-500),var(--pink-500)); height:100%; border-radius:8px; transition:width 0.2s;}
+  .avance-edit{display:flex; align-items:center; gap:10px; margin-top:8px;}
+  .avance-edit input[type=range]{flex:1; accent-color:var(--purple-700);}
+  .avance-mini{font-size:10.5px; color:var(--ink-400); margin-top:2px;}
+
   @media (max-width:860px){
     #auth-view{grid-template-columns:1fr;}
     .auth-hero{display:none;}
@@ -862,9 +872,10 @@ window.limpiarFiltrosTodos = function(){
 function filaCompromiso(c){
   const fecha = c.fechaLimite ? new Date(c.fechaLimite+'T00:00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short',year:'numeric'}) : '—';
   const isOpen = expandedRow===c.id;
+  const mostrarAvance = c.estadoReal!=='sin_habilitar' && c.estadoReal!=='cumplido';
   return `
     <tr onclick="toggleFila('${c.id}')">
-      <td class="titulo-cell">${escapeHtml(c.titulo)}</td>
+      <td class="titulo-cell">${escapeHtml(c.titulo)}${mostrarAvance ? `<div class="avance-mini mono">${c.avance||0}% de avance</div>` : ''}</td>
       <td>${escapeHtml(c.responsableNombre)}</td>
       <td>${escapeHtml(c.asignaNombre)}</td>
       <td class="mono">${fecha}</td>
@@ -994,6 +1005,7 @@ async function crearCompromiso(){
     asignaUid: currentUser.uid, asignaNombre: currentUser.nombre, asignaRol: currentUser.rol,
     fechaInicio: inicio || fecha, fechaLimite: fecha,
     proceso: proceso || null,
+    avance: 0,
     estado: 'pendiente',
     aprobado: aprobadoInicial,
     comentarios: [],
@@ -1360,23 +1372,26 @@ function pageReportes(){
     const grupos = {};
     list.forEach(c=>{
       const key = c[campoUid];
-      if(!grupos[key]) grupos[key] = { nombre: c[campoNombre], total:0, cumplido:0, no_cumplido:0, incumplido:0, pendiente:0, sin_habilitar:0 };
+      if(!grupos[key]) grupos[key] = { nombre: c[campoNombre], total:0, cumplido:0, no_cumplido:0, incumplido:0, pendiente:0, sin_habilitar:0, sumAvance:0 };
       grupos[key].total++;
       grupos[key][c.estadoReal]++;
+      grupos[key].sumAvance += (c.avance||0);
     });
     const filas = Object.values(grupos).sort((a,b)=> b.total - a.total);
     if(filas.length===0) return emptyState('Sin datos con este filtro.');
     return `
       <table class="tabla-reporte">
-        <thead><tr><th>Nombre</th><th>Total</th><th>Cumplidos</th><th>Incumplidos</th><th>% cumplimiento</th></tr></thead>
+        <thead><tr><th>Nombre</th><th>Total</th><th>Cumplidos</th><th>Incumplidos</th><th>Avance prom.</th><th>% cumplimiento</th></tr></thead>
         <tbody>
           ${filas.map(f=>{
             const pct = f.total>0 ? Math.round((f.cumplido/f.total)*100) : 0;
+            const avgAvance = f.total>0 ? Math.round(f.sumAvance/f.total) : 0;
             return `<tr>
               <td>${escapeHtml(f.nombre)}</td>
               <td class="num">${f.total}</td>
               <td class="num">${f.cumplido}</td>
               <td class="num">${f.incumplido}</td>
+              <td><div class="barra-cumpl"><div class="barra-cumpl-fill" style="background:var(--pink-500); width:${avgAvance}%;"></div></div><span style="font-size:11px; color:var(--ink-600);">${avgAvance}%</span></td>
               <td><div class="barra-cumpl"><div class="barra-cumpl-fill" style="width:${pct}%;"></div></div><span style="font-size:11px; color:var(--ink-600);">${pct}%</span></td>
             </tr>`;
           }).join('')}
@@ -1475,6 +1490,23 @@ function compromisoCard(c){
     }
   }
 
+  const avance = c.avance || 0;
+  const avanceHtml = c.estadoReal!=='sin_habilitar' ? `
+    <div class="avance-wrap">
+      <div class="avance-top">
+        <span class="avance-label">Avance</span>
+        <span class="avance-pct">${avance}%</span>
+      </div>
+      <div class="avance-track"><div class="avance-fill" style="width:${avance}%;"></div></div>
+      ${canMark ? `
+        <div class="avance-edit">
+          <input type="range" min="0" max="100" step="5" value="${avance}" oninput="this.nextElementSibling.textContent=this.value+'%'" onchange="actualizarAvance('${c.id}', this.value)">
+          <span class="avance-pct" style="min-width:38px; text-align:right;">${avance}%</span>
+        </div>
+        <div class="avance-mini">Mueve la barra para actualizar tu avance.</div>
+      ` : ''}
+    </div>` : '';
+
   return `
     <div class="compromiso">
       <div class="compromiso-top">
@@ -1490,6 +1522,7 @@ function compromisoCard(c){
         <span class="badge badge-${c.estadoReal}">${ESTADO_LABEL[c.estadoReal]}</span>
       </div>
       ${c.descripcion ? `<div class="compromiso-desc">${escapeHtml(c.descripcion)}</div>` : ''}
+      ${avanceHtml}
       ${validacionHtml}
       <div class="compromiso-actions">
         ${canMark ? `
@@ -1550,6 +1583,11 @@ window.toggleAprobado = async function(id, checked){
 
 window.marcarEstado = async function(id, estado){
   await updateDoc(doc(db,'compromisos',id), { estado });
+}
+
+window.actualizarAvance = async function(id, valor){
+  const num = Math.max(0, Math.min(100, parseInt(valor)||0));
+  await updateDoc(doc(db,'compromisos',id), { avance: num });
 }
 
 window.agregarComentario = async function(id){
