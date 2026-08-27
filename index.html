@@ -258,11 +258,6 @@
 
   <div class="auth-form-panel">
     <div class="auth-card">
-      <div class="auth-tabs">
-        <button id="tab-login" class="active" onclick="switchTab('login')">Entrar</button>
-        <button id="tab-register" onclick="switchTab('register')">Crear organización</button>
-      </div>
-
       <div id="error-box" class="error-msg hidden"></div>
 
       <!-- LOGIN -->
@@ -272,21 +267,7 @@
         <div class="field"><label>Correo</label><input type="email" id="login-email"></div>
         <div class="field"><label>Contraseña</label><input type="password" id="login-pass"></div>
         <button class="btn-primary" onclick="doLogin()">Entrar</button>
-      </div>
-
-      <!-- REGISTER -->
-      <div id="register-form" class="hidden">
-        <h2>Crear tu organización</h2>
-        <div class="sub">Esto crea un espacio nuevo y te deja como administradora. Si tu cooperativa ya tiene un espacio, pide a tu administrador que te cree la cuenta.</div>
-        <div class="field"><label>Nombre completo</label><input type="text" id="reg-name"></div>
-        <div class="field"><label>Correo</label><input type="email" id="reg-email"></div>
-        <div class="field"><label>Contraseña</label><input type="password" id="reg-pass"></div>
-        <div class="field">
-          <label>Código de organización</label>
-          <input type="text" id="reg-orgcode" placeholder="Ej: COOPSUYA2026" style="text-transform:uppercase;">
-          <div class="hint" id="org-hint">Elige un código único para tu cooperativa. Quedarás como administradora de ese espacio.</div>
-        </div>
-        <button class="btn-primary" onclick="doRegister()">Crear organización</button>
+        <div class="hint" style="text-align:center; margin-top:14px;">¿Tu cooperativa todavía no tiene cuenta? Contacta a Nórdico para que te creemos el espacio.</div>
       </div>
       <div class="app-footer">Nórdico Compromisos © 2026 Yureima Acevedo Arango</div>
     </div>
@@ -389,15 +370,6 @@ let superadminNombre = '';
 let unsubOrgsSelector = null;
 let editandoUid = null;
 
-// ---------- AUTH TABS ----------
-window.switchTab = function(tab){
-  document.getElementById('tab-login').classList.toggle('active', tab==='login');
-  document.getElementById('tab-register').classList.toggle('active', tab==='register');
-  document.getElementById('login-form').classList.toggle('hidden', tab!=='login');
-  document.getElementById('register-form').classList.toggle('hidden', tab!=='register');
-  hideError();
-}
-
 function showError(msg){
   const box = document.getElementById('error-box');
   box.textContent = msg;
@@ -405,55 +377,6 @@ function showError(msg){
 }
 function hideError(){
   document.getElementById('error-box').classList.add('hidden');
-}
-
-document.getElementById('reg-orgcode').addEventListener('input', async (e)=>{
-  const code = e.target.value.trim().toUpperCase();
-  const hint = document.getElementById('org-hint');
-  if(!code){ hint.textContent = 'Elige un código único para tu cooperativa. Quedarás como administradora de ese espacio.'; return; }
-  const orgSnap = await getDoc(doc(db,'organizaciones',code));
-  if(orgSnap.exists()){
-    hint.textContent = `Este código ya existe ("${orgSnap.data().nombre}"). Pide a tu administrador que te cree la cuenta desde "Equipo", o elige otro código.`;
-  } else {
-    hint.textContent = 'Este código está disponible: se creará el espacio y quedarás como administradora.';
-  }
-});
-
-// ---------- REGISTER (siempre crea una organización nueva, como administrador) ----------
-window.doRegister = async function(){
-  hideError();
-  const nombre = document.getElementById('reg-name').value.trim();
-  const correo = document.getElementById('reg-email').value.trim();
-  const pass = document.getElementById('reg-pass').value;
-  const orgCode = document.getElementById('reg-orgcode').value.trim().toUpperCase();
-
-  if(!nombre || !correo || !pass || !orgCode){ showError('Completa todos los campos.'); return; }
-  if(pass.length < 6){ showError('La contraseña debe tener al menos 6 caracteres.'); return; }
-
-  registrando = true;
-  try{
-    const orgRef = doc(db,'organizaciones',orgCode);
-    const orgSnap = await getDoc(orgRef);
-    if(orgSnap.exists()){
-      registrando = false;
-      showError('Este código ya existe. Pide a tu administrador que te cree la cuenta, o elige otro código de organización.');
-      return;
-    }
-
-    const cred = await createUserWithEmailAndPassword(auth, correo, pass);
-
-    await setDoc(orgRef, { nombre: orgCode, cargos: [], procesos: [], requiereHabilitacion: true, activa: true, creadoEn: serverTimestamp() });
-
-    await setDoc(doc(db,'usuarios',cred.user.uid), {
-      nombre, correo, rol: 'administrador', cargo: 'Administrador', orgCode, creadoEn: serverTimestamp()
-    });
-
-    registrando = false;
-    await entrarComoUsuario(cred.user);
-  } catch(err){
-    registrando = false;
-    showError(traducirError(err.code));
-  }
 }
 
 // ---------- LOGIN ----------
