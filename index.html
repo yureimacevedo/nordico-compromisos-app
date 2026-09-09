@@ -274,9 +274,11 @@
       <div id="login-form">
         <h2>Bienvenida de nuevo</h2>
         <div class="sub">Ingresa a tu espacio de compromisos.</div>
+        <div id="reset-msg"></div>
         <div class="field"><label>Correo</label><input type="email" id="login-email"></div>
         <div class="field"><label>Contraseña</label><input type="password" id="login-pass"></div>
         <button class="btn-primary" onclick="doLogin()">Entrar</button>
+        <button style="background:none; color:var(--purple-700); font-size:12.5px; text-decoration:underline; width:100%; text-align:center; margin-top:12px;" onclick="doResetPassword()">¿Olvidaste tu contraseña?</button>
         <div class="hint" style="text-align:center; margin-top:14px;">¿Tu cooperativa todavía no tiene cuenta? Contacta a Nórdico para que te creemos el espacio.</div>
       </div>
       <div class="app-footer">Nórdico Compromisos © 2026 Yureima Acevedo Arango</div>
@@ -335,7 +337,7 @@
 <script type="module">
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail,
   onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
@@ -397,6 +399,19 @@ window.doLogin = async function(){
   if(!correo || !pass){ showError('Ingresa tu correo y contraseña.'); return; }
   try{
     await signInWithEmailAndPassword(auth, correo, pass);
+  } catch(err){
+    showError(traducirError(err.code));
+  }
+}
+
+window.doResetPassword = async function(){
+  hideError();
+  document.getElementById('reset-msg').innerHTML = '';
+  const correo = document.getElementById('login-email').value.trim();
+  if(!correo){ showError('Escribe tu correo arriba primero, y luego click en "¿Olvidaste tu contraseña?".'); return; }
+  try{
+    await sendPasswordResetEmail(auth, correo);
+    document.getElementById('reset-msg').innerHTML = `<div class="success-msg">Te enviamos un enlace a ${correo} para crear una nueva contraseña. Ábrelo pronto — vence en un rato y solo sirve una vez.</div>`;
   } catch(err){
     showError(traducirError(err.code));
   }
