@@ -29,41 +29,10 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="X-Content-Type-Options" content="nosniff">
-<meta http-equiv="X-Frame-Options" content="DENY">
-<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
-<meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nórdico Compromisos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script>
-// ── Seguridad: Timeout de sesión por inactividad (30 minutos) ──
-(function(){
-  const TIMEOUT_MS = 30 * 60 * 1000;
-  let timer;
-  let activo = false;
-  function resetTimer(){
-    if(!activo)return;
-    clearTimeout(timer);
-    timer = setTimeout(function(){
-      try{firebase.auth().signOut();}catch(e){}
-      alert('Tu sesión se cerró por inactividad (30 minutos). Ingresa de nuevo.');
-    }, TIMEOUT_MS);
-  }
-  ['click','keydown','mousemove','scroll','touchstart'].forEach(function(ev){
-    document.addEventListener(ev, resetTimer, {passive:true});
-  });
-  document.addEventListener('DOMContentLoaded', function(){
-    try{
-      firebase.auth().onAuthStateChanged(function(user){
-        activo = !!user;
-        if(activo) resetTimer();
-        else clearTimeout(timer);
-      });
-    }catch(e){}
-  });
-})();</script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
   :root{
@@ -83,6 +52,18 @@
     --radius:14px;
     --shadow:0 4px 20px rgba(61,27,94,0.08);
   }
+  .logo-box{background:#fff; border-radius:10px; padding:8px 10px; margin-bottom:14px; display:flex; align-items:center; justify-content:center;}
+  .logo-box img{max-width:100%; max-height:52px; object-fit:contain; display:block;}
+  .paleta-btn{display:inline-flex; align-items:center; gap:8px; padding:7px 12px; border:1.5px solid var(--line); border-radius:999px; background:#fff; font-size:12.5px; font-weight:600; color:var(--ink-600); cursor:pointer;}
+  .paleta-btn:hover{border-color:var(--purple-500);}
+  .paleta-btn .dots{display:inline-flex;}
+  .paleta-btn .dots i{width:14px; height:14px; border-radius:50%; display:inline-block; border:1px solid rgba(0,0,0,0.12);}
+  .paleta-btn .dots i+i{margin-left:-4px;}
+  .color-row{display:flex; gap:18px; flex-wrap:wrap; align-items:center; margin:14px 0;}
+  .color-row label{font-size:12.5px; font-weight:600; color:var(--ink-600); display:flex; align-items:center; gap:8px;}
+  .color-row input[type=color]{width:42px; height:34px; padding:2px; border:1.5px solid var(--line); border-radius:8px; background:#fff; cursor:pointer;}
+  .logo-prev{background:#fff; border:1.5px dashed var(--line); border-radius:10px; min-height:70px; padding:10px; display:flex; align-items:center; justify-content:center; max-width:260px;}
+  .logo-prev img{max-width:100%; max-height:60px; object-fit:contain;}
   *{box-sizing:border-box; margin:0; padding:0;}
   body{
     font-family:'Inter',sans-serif;
@@ -308,13 +289,7 @@
         <div id="reset-msg"></div>
         <div class="field"><label>Correo</label><input type="email" id="login-email"></div>
         <div class="field"><label>Contraseña</label><input type="password" id="login-pass"></div>
-        <div style="display:flex;align-items:flex-start;gap:0.5rem;margin-bottom:0.75rem;padding:0.6rem;background:#FFF8F0;border-radius:8px;border:1px solid #FDE68A;">
-          <input type="checkbox" id="terminos-compromisos" onchange="document.getElementById('btn-login').disabled=!this.checked;" style="margin-top:0.2rem;cursor:pointer;"/>
-          <label for="terminos-compromisos" style="font-size:0.75rem;color:#374151;cursor:pointer;line-height:1.5;">
-            Acepto el uso responsable de esta plataforma. La información aquí contenida es <strong>confidencial</strong> y de uso exclusivo de la entidad. Su divulgación no autorizada viola la Circular 036 de Supersolidaria.
-          </label>
-        </div>
-        <button id="btn-login" class="btn-primary" onclick="doLogin()" disabled>Entrar</button>
+        <button class="btn-primary" onclick="doLogin()">Entrar</button>
         <button style="background:none; color:var(--purple-700); font-size:12.5px; text-decoration:underline; width:100%; text-align:center; margin-top:12px;" onclick="doResetPassword()">¿Olvidaste tu contraseña?</button>
         <div class="hint" style="text-align:center; margin-top:14px;">¿Tu cooperativa todavía no tiene cuenta? Contacta a Nórdico para que te creemos el espacio.</div>
       </div>
@@ -326,6 +301,7 @@
 <!-- ====================== APP VIEW ====================== -->
 <div id="app-view" class="hidden">
   <aside>
+    <div class="logo-box hidden" id="side-logo-box"><img id="side-logo" alt="Logo de la entidad"></div>
     <div class="brand"><span class="ring"></span>Nórdico</div>
     <div class="org-name" id="side-org">—</div>
     <div class="role-tag" id="side-role">—</div>
@@ -371,52 +347,569 @@
   </div>
 </div>
 
-<script type="module">import{initializeApp,deleteApp}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";import{getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,sendPasswordResetEmail,onAuthStateChanged,signOut}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";import{getFirestore,doc,getDoc,setDoc,addDoc,updateDoc,collection,query,where,onSnapshot,serverTimestamp,arrayUnion,arrayRemove}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";const firebaseConfig={apiKey:"AIzaSyCIGTzioLvuIOLN0usPZjSJEXVqaTZhVm0",authDomain:"nordico-compromisos.firebaseapp.com",projectId:"nordico-compromisos",storageBucket:"nordico-compromisos.firebasestorage.app",messagingSenderId:"659344405635",appId:"1:659344405635:web:00bc2e7503937a302d57b6"};const EMAILJS_PUBLIC_KEY="nPf5o29sS_yHIMYnY";const EMAILJS_SERVICE_ID="service_avj85gp";const EMAILJS_TEMPLATE_ID="template_c8070o4";const DIAS_RECORDATORIO=5;if(window.emailjs){window.emailjs.init({publicKey:EMAILJS_PUBLIC_KEY});}
-const app=initializeApp(firebaseConfig);const auth=getAuth(app);const db=getFirestore(app);let currentUser=null;let currentPage=null;let unsubCompromisos=null;let allCompromisos=[];let orgUsuarios=[];let orgCargos=[];let orgProcesos=[];let orgRequiereHabilitacion=true;let registrando=false;let esSuperadmin=false;let superadminNombre='';let unsubOrgsSelector=null;let editandoUid=null;function showError(msg){const box=document.getElementById('error-box');box.textContent=msg;box.classList.remove('hidden');}
-function hideError(){document.getElementById('error-box').classList.add('hidden');}
-window.doLogin=async function(){hideError();const correo=document.getElementById('login-email').value.trim();const pass=document.getElementById('login-pass').value;if(!correo||!pass){showError('Ingresa tu correo y contraseña.');return;}
-try{await signInWithEmailAndPassword(auth,correo,pass);try{const u=auth.currentUser;if(u){addDoc(collection(db,'compromisos_accesos'),{uid:u.uid,email:u.email,fecha:new Date(),userAgent:navigator.userAgent.substring(0,100)});}}catch(e){}}catch(err){showError(traducirError(err.code));}}
-window.doResetPassword=async function(){hideError();document.getElementById('reset-msg').innerHTML='';const correo=document.getElementById('login-email').value.trim();if(!correo){showError('Escribe tu correo arriba primero, y luego click en "¿Olvidaste tu contraseña?".');return;}
-try{await sendPasswordResetEmail(auth,correo,{url:'https://compromisos.yureimaacevedo.com',handleCodeInApp:false});document.getElementById('reset-msg').innerHTML=`<div class="success-msg">Te enviamos un enlace a ${correo} para crear una nueva contraseña. Ábrelo pronto — vence en un rato y solo sirve una vez.</div>`;}catch(err){showError(traducirError(err.code));}}
-window.doLogout=async function(){if(unsubCompromisos)unsubCompromisos();if(unsubOrgsSelector)unsubOrgsSelector();await signOut(auth);}
-function traducirError(code){const map={'auth/email-already-in-use':'Ese correo ya tiene una cuenta.','auth/invalid-email':'Correo inválido.','auth/weak-password':'La contraseña es muy débil.','auth/user-not-found':'No existe una cuenta con ese correo.','auth/wrong-password':'Contraseña incorrecta.','auth/invalid-credential':'Correo o contraseña incorrectos.'};return map[code]||'Ocurrió un error. Intenta de nuevo.';}
-async function entrarComoUsuario(user){const superSnap=await getDoc(doc(db,'superadmins',user.uid));console.log('[Nórdico] UID de tu sesión:',user.uid,'| ¿Es superadmin?:',superSnap.exists());if(superSnap.exists()){esSuperadmin=true;superadminNombre=superSnap.data().nombre||user.email;mostrarSelectorOrganizaciones();return;}
-const uDoc=await getDoc(doc(db,'usuarios',user.uid));if(!uDoc.exists()){if(registrando)return;await signOut(auth);showError('No encontramos tu perfil. Si tu cuenta quedó incompleta por un error anterior, créala de nuevo con otro correo, o pide a tu administrador que te agregue desde "Equipo".');return;}
-const data=uDoc.data();const orgDoc=await getDoc(doc(db,'organizaciones',data.orgCode));if(orgDoc.exists()&&orgDoc.data().activa===false){await signOut(auth);showError('Esta organización fue desactivada. Si crees que esto es un error, contacta a tu administrador.');return;}
-currentUser={uid:user.uid,nombre:data.nombre,correo:data.correo,rol:data.rol,cargo:data.cargo||'',orgCode:data.orgCode};currentUser.orgNombre=orgDoc.exists()?orgDoc.data().nombre:data.orgCode;document.getElementById('auth-view').classList.add('hidden');document.getElementById('app-view').classList.remove('hidden');initShell();listenDatos();}
-function mostrarSelectorOrganizaciones(){document.getElementById('auth-view').classList.add('hidden');document.getElementById('app-view').classList.add('hidden');document.getElementById('selector-view').classList.remove('hidden');document.getElementById('sel-nombre').textContent=superadminNombre;const btn=document.getElementById('btn-crear-org');btn.onclick=crearOrgComoSuperadmin;if(unsubOrgsSelector)unsubOrgsSelector();unsubOrgsSelector=onSnapshot(collection(db,'organizaciones'),(snap)=>{const orgs=[];snap.forEach(d=>orgs.push({code:d.id,...d.data()}));orgs.sort((a,b)=>(a.nombre||a.code).localeCompare(b.nombre||b.code));document.getElementById('lista-orgs').innerHTML=orgs.length===0?emptyState('Aún no hay organizaciones creadas.'):orgs.map(o=>{const activa=o.activa!==false;return`
+<script type="module">
+import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail,
+  onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, collection,
+  query, where, onSnapshot, serverTimestamp, arrayUnion, arrayRemove, deleteField
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ============ REEMPLAZA CON TU CONFIGURACIÓN DE FIREBASE ============
+const firebaseConfig = {
+  apiKey: "AIzaSyCIGTzioLvuIOLN0usPZjSJEXVqaTZhVm0",
+  authDomain: "nordico-compromisos.firebaseapp.com",
+  projectId: "nordico-compromisos",
+  storageBucket: "nordico-compromisos.firebasestorage.app",
+  messagingSenderId: "659344405635",
+  appId: "1:659344405635:web:00bc2e7503937a302d57b6"
+};
+// ======================================================================
+
+// ============ REEMPLAZA CON TU CONFIGURACIÓN DE EMAILJS ============
+const EMAILJS_PUBLIC_KEY = "nPf5o29sS_yHIMYnY";
+const EMAILJS_SERVICE_ID = "service_avj85gp";
+const EMAILJS_TEMPLATE_ID = "template_c8070o4";
+const DIAS_RECORDATORIO = 5;
+if(window.emailjs){ window.emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY }); }
+// ======================================================================
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;   // {uid, nombre, correo, rol, cargo, orgCode, orgNombre}
+let currentPage = null;
+let unsubCompromisos = null;
+let allCompromisos = [];
+let orgUsuarios = [];
+let orgCargos = [];
+let orgProcesos = [];
+let orgRequiereHabilitacion = true;
+let registrando = false;
+let esSuperadmin = false;
+let superadminNombre = '';
+let unsubOrgsSelector = null;
+let editandoUid = null;
+
+function showError(msg){
+  const box = document.getElementById('error-box');
+  box.textContent = msg;
+  box.classList.remove('hidden');
+}
+function hideError(){
+  document.getElementById('error-box').classList.add('hidden');
+}
+
+// ---------- LOGIN ----------
+window.doLogin = async function(){
+  hideError();
+  const correo = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  if(!correo || !pass){ showError('Ingresa tu correo y contraseña.'); return; }
+  try{
+    await signInWithEmailAndPassword(auth, correo, pass);
+  } catch(err){
+    showError(traducirError(err.code));
+  }
+}
+
+window.doResetPassword = async function(){
+  hideError();
+  document.getElementById('reset-msg').innerHTML = '';
+  const correo = document.getElementById('login-email').value.trim();
+  if(!correo){ showError('Escribe tu correo arriba primero, y luego click en "¿Olvidaste tu contraseña?".'); return; }
+  try{
+    await sendPasswordResetEmail(auth, correo);
+    document.getElementById('reset-msg').innerHTML = `<div class="success-msg">Te enviamos un enlace a ${correo} para crear una nueva contraseña. Ábrelo pronto — vence en un rato y solo sirve una vez.</div>`;
+  } catch(err){
+    showError(traducirError(err.code));
+  }
+}
+
+window.doLogout = async function(){
+  if(unsubCompromisos) unsubCompromisos();
+  if(unsubOrgsSelector) unsubOrgsSelector();
+  await signOut(auth);
+}
+
+function traducirError(code){
+  const map = {
+    'auth/email-already-in-use':'Ese correo ya tiene una cuenta.',
+    'auth/invalid-email':'Correo inválido.',
+    'auth/weak-password':'La contraseña es muy débil.',
+    'auth/user-not-found':'No existe una cuenta con ese correo.',
+    'auth/wrong-password':'Contraseña incorrecta.',
+    'auth/invalid-credential':'Correo o contraseña incorrectos.'
+  };
+  return map[code] || 'Ocurrió un error. Intenta de nuevo.';
+}
+
+// ---------- AUTH STATE ----------
+async function entrarComoUsuario(user){
+  const superSnap = await getDoc(doc(db,'superadmins',user.uid));
+  console.log('[Nórdico] UID de tu sesión:', user.uid, '| ¿Es superadmin?:', superSnap.exists());
+  if(superSnap.exists()){
+    esSuperadmin = true;
+    superadminNombre = superSnap.data().nombre || user.email;
+    mostrarSelectorOrganizaciones();
+    return;
+  }
+
+  const uDoc = await getDoc(doc(db,'usuarios',user.uid));
+  if(!uDoc.exists()){
+    if(registrando) return;
+    await signOut(auth);
+    showError('No encontramos tu perfil. Si tu cuenta quedó incompleta por un error anterior, créala de nuevo con otro correo, o pide a tu administrador que te agregue desde "Equipo".');
+    return;
+  }
+  const data = uDoc.data();
+  const orgDoc = await getDoc(doc(db,'organizaciones',data.orgCode));
+  if(orgDoc.exists() && orgDoc.data().activa===false){
+    await signOut(auth);
+    showError('Esta organización fue desactivada. Si crees que esto es un error, contacta a tu administrador.');
+    return;
+  }
+  currentUser = { uid: user.uid, nombre: data.nombre, correo: data.correo, rol: data.rol, cargo: data.cargo||'', orgCode: data.orgCode };
+  currentUser.orgNombre = orgDoc.exists() ? orgDoc.data().nombre : data.orgCode;
+  aplicarTemaOrg(orgDoc.exists() ? orgDoc.data() : null);
+
+  document.getElementById('auth-view').classList.add('hidden');
+  document.getElementById('app-view').classList.remove('hidden');
+  initShell();
+  listenDatos();
+}
+
+// ---------- SELECTOR DE ORGANIZACIONES (super-administradora) ----------
+function mostrarSelectorOrganizaciones(){
+  document.getElementById('auth-view').classList.add('hidden');
+  document.getElementById('app-view').classList.add('hidden');
+  document.getElementById('selector-view').classList.remove('hidden');
+  document.getElementById('sel-nombre').textContent = superadminNombre;
+
+  const btn = document.getElementById('btn-crear-org');
+  btn.onclick = crearOrgComoSuperadmin;
+
+  if(unsubOrgsSelector) unsubOrgsSelector();
+  unsubOrgsSelector = onSnapshot(collection(db,'organizaciones'), (snap)=>{
+    const orgs = [];
+    snap.forEach(d=> orgs.push({code:d.id, ...d.data()}));
+    orgs.sort((a,b)=> (a.nombre||a.code).localeCompare(b.nombre||b.code));
+    document.getElementById('lista-orgs').innerHTML = orgs.length===0
+      ? emptyState('Aún no hay organizaciones creadas.')
+      : orgs.map(o=>{
+          const activa = o.activa !== false;
+          return `
         <div class="equipo-item">
           <div><span class="nombre">${escapeHtml(o.nombre||o.code)}</span><span class="correo">${o.code}</span>
-            ${!activa ? `<span class="rol-tag"style="background:var(--lavender-100); color:var(--ink-400); margin-left:8px;">Desactivada</span>` : ''}
+            ${!activa ? `<span class="rol-tag" style="background:var(--lavender-100); color:var(--ink-400); margin-left:8px;">Desactivada</span>` : ''}
           </div>
           <div style="display:flex; gap:8px;">
             <button class="btn-mini" style="background:${activa?'#FBEAF1':'var(--lavender-100)'}; color:${activa?'var(--danger)':'var(--purple-700)'};" onclick="toggleOrgActiva('${o.code}', ${activa})">${activa?'Desactivar':'Activar'}</button>
             <button class="btn-mini btn-mini-purple" onclick="entrarAOrg('${o.code}')">Entrar</button>
           </div>
-        </div>`;}).join('');});}
-window.toggleOrgActiva=async function(orgCode,estabaActiva){await updateDoc(doc(db,'organizaciones',orgCode),{activa:!estabaActiva});}
-window.crearOrgComoSuperadmin=async function(){const msgBox=document.getElementById('selector-msg');msgBox.innerHTML='';const nombre=document.getElementById('sel-nueva-nombre').value.trim();const codigo=document.getElementById('sel-nuevo-codigo').value.trim().toUpperCase();if(!nombre||!codigo){msgBox.innerHTML=`<div class="error-msg">Completa el nombre y el código.</div>`;return;}
-const orgRef=doc(db,'organizaciones',codigo);const orgSnap=await getDoc(orgRef);if(orgSnap.exists()){msgBox.innerHTML=`<div class="error-msg">Ese código ya existe.</div>`;return;}
-await setDoc(orgRef,{nombre,cargos:[],procesos:[],requiereHabilitacion:true,activa:true,creadoEn:serverTimestamp()});document.getElementById('sel-nueva-nombre').value='';document.getElementById('sel-nuevo-codigo').value='';msgBox.innerHTML=`<div class="success-msg">Organización creada. Búscala abajo para entrar.</div>`;}
-window.entrarAOrg=async function(orgCode){const orgSnap=await getDoc(doc(db,'organizaciones',orgCode));if(unsubOrgsSelector){unsubOrgsSelector();unsubOrgsSelector=null;}
-currentUser={uid:auth.currentUser.uid,nombre:superadminNombre,correo:auth.currentUser.email,rol:'administrador',cargo:'Administradora general',orgCode,orgNombre:orgSnap.exists()?orgSnap.data().nombre:orgCode,esSuperadmin:true};document.getElementById('selector-view').classList.add('hidden');document.getElementById('app-view').classList.remove('hidden');initShell();listenDatos();}
-window.volverASelector=function(){if(unsubCompromisos){unsubCompromisos();unsubCompromisos=null;}
-currentUser=null;document.getElementById('app-view').classList.add('hidden');mostrarSelectorOrganizaciones();}
-onAuthStateChanged(auth,async(user)=>{if(user){if(registrando)return;await entrarComoUsuario(user);}else{currentUser=null;esSuperadmin=false;if(unsubOrgsSelector){unsubOrgsSelector();unsubOrgsSelector=null;}
-document.getElementById('app-view').classList.add('hidden');document.getElementById('selector-view').classList.add('hidden');document.getElementById('auth-view').classList.remove('hidden');}});const ROLE_LABEL={administrador:'Administrador',gerente:'Admon Área',lider:'Asignador',colaborador:'Colaborador'};const NAV={administrador:[['resumen','Resumen'],['todos','Cuadro general'],['cronograma','Cronograma'],['reportes','Reportes'],['asignar','Asignar compromiso'],['equipo','Equipo y cargos']],gerente:[['resumen','Resumen'],['todos','Cuadro general'],['cronograma','Cronograma'],['reportes','Reportes'],['asignar','Asignar compromiso']],lider:[['crear','Crear compromiso'],['misasignados','Lo que asigné'],['mistareas','Mis compromisos']],colaborador:[['mistareas','Mis compromisos']]};function initShell(){document.getElementById('side-org').textContent=currentUser.orgNombre;document.getElementById('side-role').textContent=ROLE_LABEL[currentUser.rol]+(currentUser.cargo?' · '+currentUser.cargo:'');document.getElementById('side-user').textContent=currentUser.nombre;document.getElementById('btn-cambiar-org').classList.toggle('hidden',!currentUser.esSuperadmin);const nav=document.getElementById('side-nav');nav.innerHTML='';NAV[currentUser.rol].forEach(([key,label])=>{const btn=document.createElement('button');btn.textContent=label;btn.onclick=()=>renderPage(key);btn.dataset.key=key;nav.appendChild(btn);});renderPage(NAV[currentUser.rol][0][0]);}
-function setActiveNav(key){document.querySelectorAll('#side-nav button').forEach(b=>{b.classList.toggle('active',b.dataset.key===key);});}
-function listenDatos(){const q=query(collection(db,'compromisos'),where('orgCode','==',currentUser.orgCode));unsubCompromisos=onSnapshot(q,(snap)=>{allCompromisos=[];snap.forEach(d=>allCompromisos.push({id:d.id,...d.data()}));allCompromisos.sort((a,b)=>(b.creadoEn?.seconds||0)-(a.creadoEn?.seconds||0));if(currentPage)renderPage(currentPage);revisarRecordatorios();});const qu=query(collection(db,'usuarios'),where('orgCode','==',currentUser.orgCode));onSnapshot(qu,(snap)=>{orgUsuarios=[];snap.forEach(d=>orgUsuarios.push({uid:d.id,...d.data()}));if(currentPage)renderPage(currentPage);revisarRecordatorios();});onSnapshot(doc(db,'organizaciones',currentUser.orgCode),(snap)=>{if(snap.exists()){orgCargos=snap.data().cargos||[];orgProcesos=snap.data().procesos||[];orgRequiereHabilitacion=snap.data().requiereHabilitacion!==false;currentUser.orgNombre=snap.data().nombre||currentUser.orgCode;document.getElementById('side-org').textContent=currentUser.orgNombre;if(currentPage==='equipo')renderPage('equipo');}});}
-function buscarUsuarioPorUid(uid){return orgUsuarios.find(u=>u.uid===uid)||null;}
-async function enviarCorreo(uid,asunto,mensaje,tituloCompromiso,fechaLimite){try{if(!window.emailjs||EMAILJS_SERVICE_ID==='TU_SERVICE_ID')return;const persona=buscarUsuarioPorUid(uid);if(!persona||!persona.correo)return;await window.emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ID,{to_email:persona.correo,to_name:persona.nombre,asunto,mensaje,titulo_compromiso:tituloCompromiso,fecha_limite:fechaLimite?new Date(fechaLimite+'T00:00:00').toLocaleDateString('es-CO',{day:'numeric',month:'long',year:'numeric'}):'',org_nombre:currentUser.orgNombre});}catch(err){console.error('[Nórdico] Error enviando correo:',err);}}
-async function revisarRecordatorios(){const hoy=new Date(new Date().toDateString());for(const c of allCompromisos){if(!c.fechaLimite||c.recordatorioEnviado||c.aprobado===false)continue;if(c.estado==='cumplido'||c.estado==='no_cumplido')continue;const limite=new Date(c.fechaLimite+'T00:00:00');const diffDias=Math.round((limite-hoy)/(1000*60*60*24));if(diffDias>=0&&diffDias<=DIAS_RECORDATORIO){await enviarCorreo(c.responsableUid,`Recordatorio: "${c.titulo}" vence pronto`,`Tienes un compromiso próximo a vencer.`,c.titulo,c.fechaLimite);await updateDoc(doc(db,'compromisos',c.id),{recordatorioEnviado:true});}}}
-function computeEstado(c){if(c.asignaRol==='lider'&&!c.aprobado)return'sin_habilitar';if(c.estado==='cumplido'||c.estado==='no_cumplido')return c.estado;if(c.fechaLimite&&new Date(c.fechaLimite)<new Date(new Date().toDateString()))return'incumplido';return'pendiente';}
-const ESTADO_LABEL={pendiente:'Pendiente',cumplido:'Cumplido',no_cumplido:'No cumplido',incumplido:'Incumplido',sin_habilitar:'Por habilitar'};function renderPage(key){currentPage=key;setActiveNav(key);const main=document.getElementById('main-content');if(key==='resumen')main.innerHTML=pageResumen();else if(key==='todos')main.innerHTML=pageTodos();else if(key==='crear')main.innerHTML=pageCrear();else if(key==='asignar')main.innerHTML=pageAsignar();else if(key==='misasignados')main.innerHTML=pageMisAsignados();else if(key==='mistareas')main.innerHTML=pageMisTareas();else if(key==='equipo')main.innerHTML=pageEquipo();else if(key==='cronograma')main.innerHTML=pageCronograma();else if(key==='reportes')main.innerHTML=pageReportes();}
-let resumenMes='todos';let resumenAnio='todos';let resumenEstado='todos';let resumenProceso='todos';function pageResumen(){const listaCompleta=allCompromisos.map(c=>({...c,estadoReal:computeEstado(c)}));const anios=[...new Set(listaCompleta.filter(c=>c.fechaLimite).map(c=>c.fechaLimite.slice(0,4)))].sort();const procesosDisponibles=[...new Set(listaCompleta.filter(c=>c.proceso).map(c=>c.proceso))];const list=listaCompleta.filter(c=>{if(resumenEstado!=='todos'&&c.estadoReal!==resumenEstado)return false;if(resumenProceso!=='todos'&&c.proceso!==resumenProceso)return false;if(c.fechaLimite){if(resumenMes!=='todos'&&c.fechaLimite.slice(5,7)!==resumenMes)return false;if(resumenAnio!=='todos'&&c.fechaLimite.slice(0,4)!==resumenAnio)return false;}else if(resumenMes!=='todos'||resumenAnio!=='todos'){return false;}
-return true;});const counts={pendiente:0,cumplido:0,no_cumplido:0,incumplido:0,sin_habilitar:0};list.forEach(c=>counts[c.estadoReal]++);setTimeout(()=>{const selMes=document.getElementById('rs-mes');const selAnio=document.getElementById('rs-anio');const selEstado=document.getElementById('rs-estado');const selProceso=document.getElementById('rs-proceso');if(selMes)selMes.onchange=(e)=>{resumenMes=e.target.value;renderPage('resumen');};if(selAnio)selAnio.onchange=(e)=>{resumenAnio=e.target.value;renderPage('resumen');};if(selEstado)selEstado.onchange=(e)=>{resumenEstado=e.target.value;renderPage('resumen');};if(selProceso)selProceso.onchange=(e)=>{resumenProceso=e.target.value;renderPage('resumen');};},0);const statCard=(label,num,color)=>`
+        </div>`;
+        }).join('');
+  });
+}
+
+window.toggleOrgActiva = async function(orgCode, estabaActiva){
+  await updateDoc(doc(db,'organizaciones',orgCode), { activa: !estabaActiva });
+}
+
+window.crearOrgComoSuperadmin = async function(){
+  const msgBox = document.getElementById('selector-msg');
+  msgBox.innerHTML = '';
+  const nombre = document.getElementById('sel-nueva-nombre').value.trim();
+  const codigo = document.getElementById('sel-nuevo-codigo').value.trim().toUpperCase();
+  if(!nombre || !codigo){ msgBox.innerHTML = `<div class="error-msg">Completa el nombre y el código.</div>`; return; }
+  const orgRef = doc(db,'organizaciones',codigo);
+  const orgSnap = await getDoc(orgRef);
+  if(orgSnap.exists()){ msgBox.innerHTML = `<div class="error-msg">Ese código ya existe.</div>`; return; }
+  await setDoc(orgRef, { nombre, cargos: [], procesos: [], requiereHabilitacion: true, activa: true, creadoEn: serverTimestamp() });
+  document.getElementById('sel-nueva-nombre').value='';
+  document.getElementById('sel-nuevo-codigo').value='';
+  msgBox.innerHTML = `<div class="success-msg">Organización creada. Búscala abajo para entrar.</div>`;
+}
+
+window.entrarAOrg = async function(orgCode){
+  const orgSnap = await getDoc(doc(db,'organizaciones',orgCode));
+  if(unsubOrgsSelector){ unsubOrgsSelector(); unsubOrgsSelector=null; }
+  currentUser = {
+    uid: auth.currentUser.uid, nombre: superadminNombre, correo: auth.currentUser.email,
+    rol: 'administrador', cargo: 'Administradora general', orgCode,
+    orgNombre: orgSnap.exists() ? orgSnap.data().nombre : orgCode,
+    esSuperadmin: true
+  };
+  document.getElementById('selector-view').classList.add('hidden');
+  document.getElementById('app-view').classList.remove('hidden');
+  initShell();
+  listenDatos();
+}
+
+window.volverASelector = function(){
+  if(unsubCompromisos){ unsubCompromisos(); unsubCompromisos=null; }
+  currentUser = null;
+  aplicarTemaOrg(null);
+  document.getElementById('app-view').classList.add('hidden');
+  mostrarSelectorOrganizaciones();
+}
+
+onAuthStateChanged(auth, async (user)=>{
+  if(user){
+    if(registrando) return;
+    await entrarComoUsuario(user);
+  } else {
+    currentUser = null;
+    aplicarTemaOrg(null);
+    esSuperadmin = false;
+    if(unsubOrgsSelector){ unsubOrgsSelector(); unsubOrgsSelector=null; }
+    document.getElementById('app-view').classList.add('hidden');
+    document.getElementById('selector-view').classList.add('hidden');
+    document.getElementById('auth-view').classList.remove('hidden');
+  }
+});
+
+// ---------- IDENTIDAD VISUAL POR ORGANIZACIÓN ----------
+const TEMA_DEFECTO = { primario:'#5B2A86', acento:'#E0559B' };
+const PALETAS = [
+  { nombre:'Nórdico',      primario:'#5B2A86', acento:'#E0559B' },
+  { nombre:'Coofisam',     primario:'#D70014', acento:'#FFBB00' },
+  { nombre:'Fundacoofisam',primario:'#00BEC8', acento:'#007C82' },
+  { nombre:'Coosanroque',  primario:'#276AAB', acento:'#1A4F82' },
+  { nombre:'Coonecta',     primario:'#375194', acento:'#A5C139' }
+];
+let orgTema = { primario:null, acento:null, logo:null };
+
+function hexValido(h){ return /^#[0-9a-fA-F]{6}$/.test(h||''); }
+function hexARgb(h){ return [1,3,5].map(i=>parseInt(h.slice(i,i+2),16)); }
+function rgbAHex(r){ return '#'+r.map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join(''); }
+function mezclar(h1,h2,t){ const a=hexARgb(h1), b=hexARgb(h2); return rgbAHex(a.map((v,i)=>v+(b[i]-v)*t)); }
+function luminancia(h){
+  const [r,g,b]=hexARgb(h).map(v=>{ v/=255; return v<=0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055,2.4); });
+  return 0.2126*r+0.7152*g+0.0722*b;
+}
+// Oscurece el color hasta que el texto blanco se lea bien sobre él
+function oscurecerHasta(h, lumMax){
+  let c=h, n=0;
+  while(luminancia(c)>lumMax && n<30){ c=mezclar(c,'#000000',0.08); n++; }
+  return c;
+}
+
+function aplicarTemaOrg(d){
+  const r = document.documentElement.style;
+  const props = ['--purple-900','--purple-700','--purple-500','--pink-500','--pink-400','--lavender-50','--lavender-100','--line','--shadow'];
+  orgTema = { primario: hexValido(d&&d.colorPrimario)?d.colorPrimario:null,
+              acento:   hexValido(d&&d.colorAcento)?d.colorAcento:null,
+              logo:     (d&&d.logo)||null };
+  if(!orgTema.primario && !orgTema.acento){ props.forEach(k=>r.removeProperty(k)); }
+  else{
+    const base = oscurecerHasta(orgTema.primario||TEMA_DEFECTO.primario, 0.16);
+    const acen = oscurecerHasta(orgTema.acento||TEMA_DEFECTO.acento, 0.30);
+    const acenClaro = mezclar(orgTema.acento||TEMA_DEFECTO.acento, '#ffffff', 0.25);
+    r.setProperty('--purple-700', base);
+    r.setProperty('--purple-900', mezclar(base,'#000000',0.38));
+    r.setProperty('--purple-500', mezclar(base,'#ffffff',0.18));
+    r.setProperty('--pink-500', acen);
+    r.setProperty('--pink-400', acenClaro);
+    r.setProperty('--lavender-50', mezclar(base,'#ffffff',0.95));
+    r.setProperty('--lavender-100', mezclar(base,'#ffffff',0.90));
+    r.setProperty('--line', mezclar(base,'#ffffff',0.85));
+    const [R,G,B]=hexARgb(mezclar(base,'#000000',0.38));
+    r.setProperty('--shadow', `0 4px 20px rgba(${R},${G},${B},0.10)`);
+  }
+  const box = document.getElementById('side-logo-box'), img = document.getElementById('side-logo');
+  if(box && img){
+    if(orgTema.logo){ img.src = orgTema.logo; box.classList.remove('hidden'); }
+    else { img.removeAttribute('src'); box.classList.add('hidden'); }
+  }
+}
+function logoPrintHtml(){
+  return orgTema.logo ? `<img src="${orgTema.logo}" alt="" style="height:34px; vertical-align:middle; margin-right:10px;">` : '';
+}
+
+// Reduce la imagen a un tamaño liviano antes de guardarla en Firestore
+function reducirLogo(file){
+  return new Promise((resolve,reject)=>{
+    if(!/^image\//.test(file.type)){ reject(new Error('El archivo debe ser una imagen (PNG, JPG o SVG).')); return; }
+    const fr = new FileReader();
+    fr.onerror = ()=> reject(new Error('No se pudo leer la imagen.'));
+    fr.onload = ()=>{
+      const img = new Image();
+      img.onerror = ()=> reject(new Error('No se pudo abrir la imagen.'));
+      img.onload = ()=>{
+        const MAX = 360;
+        const esc = Math.min(1, MAX/Math.max(img.width, img.height));
+        const w = Math.max(1,Math.round(img.width*esc)), h = Math.max(1,Math.round(img.height*esc));
+        const cv = document.createElement('canvas'); cv.width=w; cv.height=h;
+        cv.getContext('2d').drawImage(img,0,0,w,h);
+        const png = cv.toDataURL('image/png');
+        resolve(png.length > 300000 ? cv.toDataURL('image/jpeg',0.85) : png);
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
+function cardImagenEntidad(){
+  const p = orgTema.primario || TEMA_DEFECTO.primario;
+  const a = orgTema.acento || TEMA_DEFECTO.acento;
+  setTimeout(()=>{
+    const cp = document.getElementById('tema-primario'), ca = document.getElementById('tema-acento');
+    if(cp) cp.value = p;
+    if(ca) ca.value = a;
+    const guardar = document.getElementById('btn-guardar-tema');
+    if(guardar) guardar.onclick = guardarTema;
+    const reset = document.getElementById('btn-reset-tema');
+    if(reset) reset.onclick = restablecerTema;
+    const fl = document.getElementById('tema-logo-file');
+    if(fl) fl.onchange = subirLogo;
+    const ql = document.getElementById('btn-quitar-logo');
+    if(ql) ql.onclick = quitarLogo;
+  },0);
+  return `
+    <div class="card">
+      <h3>Imagen de la entidad <span class="hint" style="font-weight:400;">(solo la ves tú)</span></h3>
+      <div class="hint" style="margin-bottom:12px;">Los colores y el logo se aplican a toda la app de ${escapeHtml(currentUser.orgNombre)}. El nombre «Nórdico» y el aviso legal se mantienen.</div>
+      <div id="tema-msg"></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        ${PALETAS.map((x,i)=>`<button type="button" class="paleta-btn" onclick="elegirPaleta(${i})"><span class="dots"><i style="background:${x.primario}"></i><i style="background:${x.acento}"></i></span>${x.nombre}</button>`).join('')}
+      </div>
+      <div class="color-row">
+        <label>Color principal <input type="color" id="tema-primario"></label>
+        <label>Color de acento <input type="color" id="tema-acento"></label>
+      </div>
+      <div class="hint" style="margin-bottom:14px;">Si el color principal es muy claro, la app lo oscurece sola para que las letras blancas se lean bien.</div>
+      <label style="font-size:12.5px; font-weight:600; color:var(--ink-600); display:block; margin-bottom:6px;">Logo</label>
+      <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
+        <div class="logo-prev">${orgTema.logo ? `<img src="${orgTema.logo}" alt="Logo actual">` : '<span class="hint">Sin logo</span>'}</div>
+        <div>
+          <input type="file" id="tema-logo-file" accept="image/png,image/jpeg,image/svg+xml,image/webp">
+          ${orgTema.logo ? `<div style="margin-top:8px;"><button type="button" class="btn-mini" id="btn-quitar-logo">Quitar logo</button></div>` : ''}
+        </div>
+      </div>
+      <div style="display:flex; gap:10px; margin-top:18px;">
+        <button class="btn-primary" id="btn-guardar-tema" style="width:auto; padding:11px 18px;">Guardar colores</button>
+        <button class="btn-mini" id="btn-reset-tema">Volver a los colores de Nórdico</button>
+      </div>
+    </div>`;
+}
+function temaMsg(txt, ok=true){
+  const b = document.getElementById('tema-msg');
+  if(b) b.innerHTML = `<div class="${ok?'success-msg':'error-msg'}">${txt}</div>`;
+}
+window.elegirPaleta = function(i){
+  document.getElementById('tema-primario').value = PALETAS[i].primario;
+  document.getElementById('tema-acento').value = PALETAS[i].acento;
+  // vista previa inmediata, sin guardar todavía
+  aplicarTemaOrg({ colorPrimario:PALETAS[i].primario, colorAcento:PALETAS[i].acento, logo:orgTema.logo });
+}
+async function guardarTema(){
+  const pr = document.getElementById('tema-primario').value, ac = document.getElementById('tema-acento').value;
+  try{
+    await updateDoc(doc(db,'organizaciones',currentUser.orgCode), { colorPrimario:pr, colorAcento:ac });
+    temaMsg('Colores guardados.');
+  }catch(e){ temaMsg('No se pudo guardar: '+e.message, false); }
+}
+async function restablecerTema(){
+  try{
+    await updateDoc(doc(db,'organizaciones',currentUser.orgCode), { colorPrimario:deleteField(), colorAcento:deleteField() });
+  }catch(e){ temaMsg('No se pudo restablecer: '+e.message, false); }
+}
+async function subirLogo(e){
+  const f = e.target.files[0]; if(!f) return;
+  try{
+    const data = await reducirLogo(f);
+    await updateDoc(doc(db,'organizaciones',currentUser.orgCode), { logo:data });
+  }catch(err){ temaMsg(err.message||'No se pudo subir el logo.', false); }
+}
+async function quitarLogo(){
+  try{ await updateDoc(doc(db,'organizaciones',currentUser.orgCode), { logo:deleteField() }); }
+  catch(err){ temaMsg('No se pudo quitar el logo.', false); }
+}
+
+// ---------- SHELL / NAV ----------
+const ROLE_LABEL = { administrador:'Administrador', gerente:'Admon Área', lider:'Asignador', colaborador:'Colaborador' };
+const NAV = {
+  administrador: [ ['resumen','Resumen'], ['todos','Cuadro general'], ['cronograma','Cronograma'], ['reportes','Reportes'], ['asignar','Asignar compromiso'], ['equipo','Equipo y cargos'] ],
+  gerente: [ ['resumen','Resumen'], ['todos','Cuadro general'], ['cronograma','Cronograma'], ['reportes','Reportes'], ['asignar','Asignar compromiso'] ],
+  lider: [ ['crear','Crear compromiso'], ['misasignados','Lo que asigné'], ['mistareas','Mis compromisos'] ],
+  colaborador: [ ['mistareas','Mis compromisos'] ]
+};
+
+function initShell(){
+  document.getElementById('side-org').textContent = currentUser.orgNombre;
+  document.getElementById('side-role').textContent = ROLE_LABEL[currentUser.rol] + (currentUser.cargo ? ' · ' + currentUser.cargo : '');
+  document.getElementById('side-user').textContent = currentUser.nombre;
+  document.getElementById('btn-cambiar-org').classList.toggle('hidden', !currentUser.esSuperadmin);
+
+  const nav = document.getElementById('side-nav');
+  nav.innerHTML = '';
+  NAV[currentUser.rol].forEach(([key,label])=>{
+    const btn = document.createElement('button');
+    btn.textContent = label;
+    btn.onclick = ()=> renderPage(key);
+    btn.dataset.key = key;
+    nav.appendChild(btn);
+  });
+  renderPage(NAV[currentUser.rol][0][0]);
+}
+
+function setActiveNav(key){
+  document.querySelectorAll('#side-nav button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.key===key);
+  });
+}
+
+// ---------- DATA LISTENERS ----------
+function listenDatos(){
+  const q = query(collection(db,'compromisos'), where('orgCode','==',currentUser.orgCode));
+  unsubCompromisos = onSnapshot(q, (snap)=>{
+    allCompromisos = [];
+    snap.forEach(d=> allCompromisos.push({id:d.id, ...d.data()}));
+    allCompromisos.sort((a,b)=> (b.creadoEn?.seconds||0) - (a.creadoEn?.seconds||0));
+    if(currentPage) renderPage(currentPage);
+    revisarRecordatorios();
+  });
+
+  const qu = query(collection(db,'usuarios'), where('orgCode','==',currentUser.orgCode));
+  onSnapshot(qu, (snap)=>{
+    orgUsuarios = [];
+    snap.forEach(d=> orgUsuarios.push({uid:d.id, ...d.data()}));
+    if(currentPage) renderPage(currentPage);
+    revisarRecordatorios();
+  });
+
+  onSnapshot(doc(db,'organizaciones',currentUser.orgCode), (snap)=>{
+    if(snap.exists()){
+      orgCargos = snap.data().cargos || [];
+      orgProcesos = snap.data().procesos || [];
+      orgRequiereHabilitacion = snap.data().requiereHabilitacion !== false;
+      currentUser.orgNombre = snap.data().nombre || currentUser.orgCode;
+      aplicarTemaOrg(snap.data());
+      document.getElementById('side-org').textContent = currentUser.orgNombre;
+      if(currentPage==='equipo') renderPage('equipo');
+    }
+  });
+}
+
+// ---------- CORREOS (EmailJS) ----------
+function buscarUsuarioPorUid(uid){
+  return orgUsuarios.find(u=>u.uid===uid) || null;
+}
+
+async function enviarCorreo(uid, asunto, mensaje, tituloCompromiso, fechaLimite){
+  try{
+    if(!window.emailjs || EMAILJS_SERVICE_ID==='TU_SERVICE_ID') return;
+    const persona = buscarUsuarioPorUid(uid);
+    if(!persona || !persona.correo) return;
+    await window.emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      to_email: persona.correo,
+      to_name: persona.nombre,
+      asunto,
+      mensaje,
+      titulo_compromiso: tituloCompromiso,
+      fecha_limite: fechaLimite ? new Date(fechaLimite+'T00:00:00').toLocaleDateString('es-CO',{day:'numeric',month:'long',year:'numeric'}) : '',
+      org_nombre: currentUser.orgNombre
+    });
+  } catch(err){
+    console.error('[Nórdico] Error enviando correo:', err);
+  }
+}
+
+async function revisarRecordatorios(){
+  const hoy = new Date(new Date().toDateString());
+  for(const c of allCompromisos){
+    if(!c.fechaLimite || c.recordatorioEnviado || c.aprobado===false) continue;
+    if(c.estado==='cumplido' || c.estado==='no_cumplido') continue;
+    const limite = new Date(c.fechaLimite+'T00:00:00');
+    const diffDias = Math.round((limite - hoy)/(1000*60*60*24));
+    if(diffDias>=0 && diffDias<=DIAS_RECORDATORIO){
+      await enviarCorreo(c.responsableUid, `Recordatorio: "${c.titulo}" vence pronto`, `Tienes un compromiso próximo a vencer.`, c.titulo, c.fechaLimite);
+      await updateDoc(doc(db,'compromisos',c.id), { recordatorioEnviado: true });
+    }
+  }
+}
+
+function computeEstado(c){
+  if(c.asignaRol==='lider' && !c.aprobado) return 'sin_habilitar';
+  if(c.estado === 'cumplido' || c.estado === 'no_cumplido') return c.estado;
+  if(c.fechaLimite && new Date(c.fechaLimite) < new Date(new Date().toDateString())) return 'incumplido';
+  return 'pendiente';
+}
+const ESTADO_LABEL = { pendiente:'Pendiente', cumplido:'Cumplido', no_cumplido:'No cumplido', incumplido:'Incumplido', sin_habilitar:'Por habilitar' };
+
+// ---------- PAGE ROUTER ----------
+function renderPage(key){
+  currentPage = key;
+  setActiveNav(key);
+  const main = document.getElementById('main-content');
+  if(key==='resumen') main.innerHTML = pageResumen();
+  else if(key==='todos') main.innerHTML = pageTodos();
+  else if(key==='crear') main.innerHTML = pageCrear();
+  else if(key==='asignar') main.innerHTML = pageAsignar();
+  else if(key==='misasignados') main.innerHTML = pageMisAsignados();
+  else if(key==='mistareas') main.innerHTML = pageMisTareas();
+  else if(key==='equipo') main.innerHTML = pageEquipo();
+  else if(key==='cronograma') main.innerHTML = pageCronograma();
+  else if(key==='reportes') main.innerHTML = pageReportes();
+}
+
+// ---------- CUADRO GENERAL (administrador y gerente) ----------
+let resumenMes = 'todos';
+let resumenAnio = 'todos';
+let resumenEstado = 'todos';
+let resumenProceso = 'todos';
+
+function pageResumen(){
+  const listaCompleta = allCompromisos.map(c=>({...c, estadoReal: computeEstado(c)}));
+  const anios = [...new Set(listaCompleta.filter(c=>c.fechaLimite).map(c=>c.fechaLimite.slice(0,4)))].sort();
+  const procesosDisponibles = [...new Set(listaCompleta.filter(c=>c.proceso).map(c=>c.proceso))];
+
+  const list = listaCompleta.filter(c=>{
+    if(resumenEstado!=='todos' && c.estadoReal!==resumenEstado) return false;
+    if(resumenProceso!=='todos' && c.proceso!==resumenProceso) return false;
+    if(c.fechaLimite){
+      if(resumenMes!=='todos' && c.fechaLimite.slice(5,7)!==resumenMes) return false;
+      if(resumenAnio!=='todos' && c.fechaLimite.slice(0,4)!==resumenAnio) return false;
+    } else if(resumenMes!=='todos' || resumenAnio!=='todos'){
+      return false;
+    }
+    return true;
+  });
+
+  const counts = { pendiente:0, cumplido:0, no_cumplido:0, incumplido:0, sin_habilitar:0 };
+  list.forEach(c=> counts[c.estadoReal]++);
+
+  setTimeout(()=>{
+    const selMes = document.getElementById('rs-mes');
+    const selAnio = document.getElementById('rs-anio');
+    const selEstado = document.getElementById('rs-estado');
+    const selProceso = document.getElementById('rs-proceso');
+    if(selMes) selMes.onchange = (e)=>{ resumenMes = e.target.value; renderPage('resumen'); };
+    if(selAnio) selAnio.onchange = (e)=>{ resumenAnio = e.target.value; renderPage('resumen'); };
+    if(selEstado) selEstado.onchange = (e)=>{ resumenEstado = e.target.value; renderPage('resumen'); };
+    if(selProceso) selProceso.onchange = (e)=>{ resumenProceso = e.target.value; renderPage('resumen'); };
+  },0);
+
+  const statCard = (label, num, color)=> `
     <div class="stat-card">
       <div class="ring-wrap" style="background:${color}22;"><div style="width:14px;height:14px;border-radius:50%;background:${color};"></div></div>
       <div><div class="num">${num}</div><div class="label">${label}</div></div>
-    </div>`;const filtroTexto=[resumenEstado!=='todos'?ESTADO_LABEL[resumenEstado]:null,resumenProceso!=='todos'?resumenProceso:null,resumenMes!=='todos'?MES_NOMBRES[Number(resumenMes)-1]:null,resumenAnio!=='todos'?resumenAnio:null].filter(Boolean).join(' · ')||'sin filtros';return`
+    </div>`;
+
+  const filtroTexto = [
+    resumenEstado!=='todos' ? ESTADO_LABEL[resumenEstado] : null,
+    resumenProceso!=='todos' ? resumenProceso : null,
+    resumenMes!=='todos' ? MES_NOMBRES[Number(resumenMes)-1] : null,
+    resumenAnio!=='todos' ? resumenAnio : null
+  ].filter(Boolean).join(' · ') || 'sin filtros';
+
+  return `
     <div class="page-header">
       <div><h1>Resumen general</h1><div class="sub">${currentUser.orgNombre} · ${list.length} de ${listaCompleta.length} compromisos</div></div>
       <div class="no-print" style="display:flex; gap:8px;">
@@ -424,7 +917,7 @@ return true;});const counts={pendiente:0,cumplido:0,no_cumplido:0,incumplido:0,s
         <button class="btn-primary" style="width:auto; padding:11px 18px;" onclick="window.print()">🖨️ Imprimir</button>
       </div>
     </div>
-    <div class="print-only" style="margin-bottom:14px; font-size:12.5px; color:var(--ink-600);">${currentUser.orgNombre} · filtro: ${filtroTexto} · generado el ${new Date().toLocaleDateString('es-CO',{day:'numeric',month:'long',year:'numeric'})}</div>
+    <div class="print-only" style="margin-bottom:14px; font-size:12.5px; color:var(--ink-600);">${logoPrintHtml()}${currentUser.orgNombre} · filtro: ${filtroTexto} · generado el ${new Date().toLocaleDateString('es-CO',{day:'numeric',month:'long',year:'numeric'})}</div>
     <div class="filters no-print">
       <select id="rs-estado">
         <option value="todos" ${resumenEstado==='todos'?'selected':''}>Todos los estados</option>
@@ -434,14 +927,17 @@ return true;});const counts={pendiente:0,cumplido:0,no_cumplido:0,incumplido:0,s
         <option value="incumplido" ${resumenEstado==='incumplido'?'selected':''}>Incumplido</option>
         <option value="sin_habilitar" ${resumenEstado==='sin_habilitar'?'selected':''}>Por habilitar</option>
       </select>
-      ${procesosDisponibles.length>0 ? `<select id="rs-proceso"><option value="todos"${resumenProceso==='todos'?'selected':''}>Proceso:todos</option>${procesosDisponibles.map(p=>`<option value="${p}" ${resumenProceso===p?'selected':''}>${p}</option>`).join('')}</select>` : ''}
+      ${procesosDisponibles.length>0 ? `<select id="rs-proceso">
+        <option value="todos" ${resumenProceso==='todos'?'selected':''}>Proceso: todos</option>
+        ${procesosDisponibles.map(p=>`<option value="${p}" ${resumenProceso===p?'selected':''}>${p}</option>`).join('')}
+      </select>` : ''}
       <select id="rs-mes">
         <option value="todos" ${resumenMes==='todos'?'selected':''}>Todos los meses</option>
-        ${MES_NOMBRES.map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}"${resumenMes===String(i+1).padStart(2,'0')?'selected':''}>${m}</option>`).join('')}
+        ${MES_NOMBRES.map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}" ${resumenMes===String(i+1).padStart(2,'0')?'selected':''}>${m}</option>`).join('')}
       </select>
       <select id="rs-anio">
         <option value="todos" ${resumenAnio==='todos'?'selected':''}>Todos los años</option>
-        ${anios.map(a=>`<option value="${a}"${resumenAnio===a?'selected':''}>${a}</option>`).join('')}
+        ${anios.map(a=>`<option value="${a}" ${resumenAnio===a?'selected':''}>${a}</option>`).join('')}
       </select>
     </div>
     <div class="stats-row" style="grid-template-columns:repeat(5,1fr);">
@@ -455,11 +951,60 @@ return true;});const counts={pendiente:0,cumplido:0,no_cumplido:0,incumplido:0,s
       <h3>${filtroTexto==='sin filtros' ? 'Actividad reciente' : 'Compromisos con este filtro'}</h3>
       ${list.length===0 ? emptyState('No hay compromisos con este filtro.') : list.slice(0,8).map(c=>compromisoCard(c)).join('')}
     </div>
-  `;}
-window.limpiarFiltrosResumen=function(){resumenMes='todos';resumenAnio='todos';resumenEstado='todos';resumenProceso='todos';renderPage('resumen');}
-const MES_NOMBRES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];let expandedRow=null;function pageTodos(){const list=allCompromisos.map(c=>({...c,estadoReal:computeEstado(c)}));const asignadores=[...new Set(list.map(c=>c.asignaNombre))];const responsables=[...new Set(list.map(c=>c.responsableNombre))];const procesos=[...new Set(list.filter(c=>c.proceso).map(c=>c.proceso))];const anios=[...new Set(list.filter(c=>c.fechaLimite).map(c=>c.fechaLimite.slice(0,4)))].sort();setTimeout(()=>{['f-estado','f-asigno','f-asignado','f-proceso','f-mes','f-anio'].forEach(id=>{const el=document.getElementById(id);if(el)el.onchange=renderTablaFiltrada;});renderTablaFiltrada();},0);function renderTablaFiltrada(){const est=document.getElementById('f-estado').value;const asigno=document.getElementById('f-asigno').value;const asig=document.getElementById('f-asignado').value;const procEl=document.getElementById('f-proceso');const proc=procEl?procEl.value:'todos';const mes=document.getElementById('f-mes').value;const anio=document.getElementById('f-anio').value;const filtered=list.filter(c=>{if(est!=='todos'&&c.estadoReal!==est)return false;if(asigno!=='todos'&&c.asignaNombre!==asigno)return false;if(asig!=='todos'&&c.responsableNombre!==asig)return false;if(proc!=='todos'&&c.proceso!==proc)return false;if(c.fechaLimite){if(mes!=='todos'&&c.fechaLimite.slice(5,7)!==mes)return false;if(anio!=='todos'&&c.fechaLimite.slice(0,4)!==anio)return false;}else if(mes!=='todos'||anio!=='todos'){return false;}
-return true;});document.getElementById('tabla-body').innerHTML=filtered.length===0?`<tr><td colspan="5">${emptyState('No hay compromisos con ese filtro.')}</td></tr>`:filtered.map(c=>filaCompromiso(c)).join('');}
-window.renderTablaFiltrada=renderTablaFiltrada;return`
+  `;
+}
+
+window.limpiarFiltrosResumen = function(){
+  resumenMes = 'todos'; resumenAnio = 'todos'; resumenEstado = 'todos'; resumenProceso = 'todos';
+  renderPage('resumen');
+}
+const MES_NOMBRES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+let expandedRow = null;
+
+function pageTodos(){
+  const list = allCompromisos.map(c=>({...c, estadoReal: computeEstado(c)}));
+  const asignadores = [...new Set(list.map(c=>c.asignaNombre))];
+  const responsables = [...new Set(list.map(c=>c.responsableNombre))];
+  const procesos = [...new Set(list.filter(c=>c.proceso).map(c=>c.proceso))];
+  const anios = [...new Set(list.filter(c=>c.fechaLimite).map(c=> c.fechaLimite.slice(0,4)))].sort();
+
+  setTimeout(()=>{
+    ['f-estado','f-asigno','f-asignado','f-proceso','f-mes','f-anio'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.onchange = renderTablaFiltrada;
+    });
+    renderTablaFiltrada();
+  },0);
+
+  function renderTablaFiltrada(){
+    const est = document.getElementById('f-estado').value;
+    const asigno = document.getElementById('f-asigno').value;
+    const asig = document.getElementById('f-asignado').value;
+    const procEl = document.getElementById('f-proceso');
+    const proc = procEl ? procEl.value : 'todos';
+    const mes = document.getElementById('f-mes').value;
+    const anio = document.getElementById('f-anio').value;
+
+    const filtered = list.filter(c=>{
+      if(est!=='todos' && c.estadoReal!==est) return false;
+      if(asigno!=='todos' && c.asignaNombre!==asigno) return false;
+      if(asig!=='todos' && c.responsableNombre!==asig) return false;
+      if(proc!=='todos' && c.proceso!==proc) return false;
+      if(c.fechaLimite){
+        if(mes!=='todos' && c.fechaLimite.slice(5,7)!==mes) return false;
+        if(anio!=='todos' && c.fechaLimite.slice(0,4)!==anio) return false;
+      } else if(mes!=='todos' || anio!=='todos'){
+        return false;
+      }
+      return true;
+    });
+    document.getElementById('tabla-body').innerHTML = filtered.length===0
+      ? `<tr><td colspan="5">${emptyState('No hay compromisos con ese filtro.')}</td></tr>`
+      : filtered.map(c=>filaCompromiso(c)).join('');
+  }
+  window.renderTablaFiltrada = renderTablaFiltrada;
+
+  return `
     <div class="page-header">
       <div><h1>Cuadro general de compromisos</h1><div class="sub">Filtra por estado, quién asignó, asignado, proceso, mes o año — click en una fila para ver el detalle</div></div>
       <div class="no-print" style="display:flex; gap:8px;">
@@ -467,7 +1012,7 @@ window.renderTablaFiltrada=renderTablaFiltrada;return`
         <button class="btn-primary" style="width:auto; padding:11px 18px;" onclick="window.print()">🖨️ Imprimir</button>
       </div>
     </div>
-    <div class="print-only" style="margin-bottom:14px; font-size:12.5px; color:var(--ink-600);">${currentUser.orgNombre} · generado el ${new Date().toLocaleDateString('es-CO',{day:'numeric',month:'long',year:'numeric'})}</div>
+    <div class="print-only" style="margin-bottom:14px; font-size:12.5px; color:var(--ink-600);">${logoPrintHtml()}${currentUser.orgNombre} · generado el ${new Date().toLocaleDateString('es-CO',{day:'numeric',month:'long',year:'numeric'})}</div>
     <div class="filters no-print">
       <select id="f-estado">
         <option value="todos">Todos los estados</option>
@@ -485,7 +1030,10 @@ window.renderTablaFiltrada=renderTablaFiltrada;return`
         <option value="todos">Asignado a: todos</option>
         ${responsables.map(r=>`<option value="${r}">${r}</option>`).join('')}
       </select>
-      ${procesos.length>0 ? `<select id="f-proceso"><option value="todos">Proceso:todos</option>${procesos.map(p=>`<option value="${p}">${p}</option>`).join('')}</select>` : ''}
+      ${procesos.length>0 ? `<select id="f-proceso">
+        <option value="todos">Proceso: todos</option>
+        ${procesos.map(p=>`<option value="${p}">${p}</option>`).join('')}
+      </select>` : ''}
       <select id="f-mes">
         <option value="todos">Todos los meses</option>
         ${MES_NOMBRES.map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}">${m}</option>`).join('')}
@@ -501,34 +1049,74 @@ window.renderTablaFiltrada=renderTablaFiltrada;return`
         <tbody id="tabla-body"></tbody>
       </table>
     </div>
-  `;}
-window.limpiarFiltrosTodos=function(){['f-estado','f-asigno','f-asignado','f-proceso','f-mes','f-anio'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='todos';});window.renderTablaFiltrada();}
-function filaCompromiso(c){const fecha=c.fechaLimite?new Date(c.fechaLimite+'T00:00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short',year:'numeric'}):'—';const isOpen=expandedRow===c.id;const mostrarAvance=c.estadoReal!=='sin_habilitar'&&c.estadoReal!=='cumplido';return`
+  `;
+}
+
+window.limpiarFiltrosTodos = function(){
+  ['f-estado','f-asigno','f-asignado','f-proceso','f-mes','f-anio'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.value = 'todos';
+  });
+  window.renderTablaFiltrada();
+}
+
+function filaCompromiso(c){
+  const fecha = c.fechaLimite ? new Date(c.fechaLimite+'T00:00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short',year:'numeric'}) : '—';
+  const isOpen = expandedRow===c.id;
+  const mostrarAvance = c.estadoReal!=='sin_habilitar' && c.estadoReal!=='cumplido';
+  return `
     <tr onclick="toggleFila('${c.id}')">
-      <td class="titulo-cell">${escapeHtml(c.titulo)}${mostrarAvance ? `<div class="avance-mini mono">${c.avance||0}%de avance</div>` : ''}</td>
+      <td class="titulo-cell">${escapeHtml(c.titulo)}${mostrarAvance ? `<div class="avance-mini mono">${c.avance||0}% de avance</div>` : ''}</td>
       <td>${escapeHtml(c.responsableNombre)}</td>
       <td>${escapeHtml(c.asignaNombre)}</td>
       <td class="mono">${fecha}</td>
       <td><span class="badge badge-${c.estadoReal}">${ESTADO_LABEL[c.estadoReal]}</span></td>
     </tr>
     ${isOpen ? `<tr class="detalle-row"><td colspan="5">${compromisoCard(c)}</td></tr>` : ''}
-  `;}
-window.toggleFila=function(id){expandedRow=expandedRow===id?null:id;window.renderTablaFiltrada();}
-function pageCrear(){setTimeout(()=>{const btn=document.getElementById('btn-crear-compromiso');if(btn)btn.onclick=crearCompromiso;},0);const colaboradores=orgUsuarios.filter(u=>u.rol==='colaborador');const otrosLideres=orgUsuarios.filter(u=>u.rol==='lider'&&u.uid!==currentUser.uid);return`
+  `;
+}
+
+window.toggleFila = function(id){
+  expandedRow = expandedRow===id ? null : id;
+  window.renderTablaFiltrada();
+}
+
+// ---------- LIDER: CREAR (asigna a un colaborador o a sí mismo) ----------
+function pageCrear(){
+  setTimeout(()=>{
+    const btn = document.getElementById('btn-crear-compromiso');
+    if(btn) btn.onclick = crearCompromiso;
+  },0);
+
+  const colaboradores = orgUsuarios.filter(u=>u.rol==='colaborador');
+  const otrosLideres = orgUsuarios.filter(u=>u.rol==='lider' && u.uid!==currentUser.uid);
+
+  return `
     <div class="page-header">
       <div><h1>Crear compromiso</h1><div class="sub">Asígnalo a un colaborador, a otro asignador, o a ti mismo</div></div>
     </div>
     <div class="card">
       <div class="field"><label>Título del compromiso</label><input type="text" id="c-titulo" placeholder="Ej: Entregar informe de cartera"></div>
       <div class="field"><label>Descripción</label><input type="text" id="c-desc" placeholder="Detalles, contexto o instrucciones"></div>
-      ${orgProcesos.length>0 ? `<div class="field"><label>Proceso<span class="hint"style="font-weight:400;">(opcional)</span></label><select id="c-proceso"><option value="">Sin proceso</option>${orgProcesos.map(p=>`<option value="${p}">${p}</option>`).join('')}</select></div>` : ''}
+      ${orgProcesos.length>0 ? `
+      <div class="field">
+        <label>Proceso <span class="hint" style="font-weight:400;">(opcional)</span></label>
+        <select id="c-proceso">
+          <option value="">Sin proceso</option>
+          ${orgProcesos.map(p=>`<option value="${p}">${p}</option>`).join('')}
+        </select>
+      </div>` : ''}
       <div class="field">
         <label>Responsable</label>
         <select id="c-responsable">
           <option value="">Selecciona un responsable</option>
           <option value="${currentUser.uid}|${currentUser.nombre}|lider">Yo mismo (${currentUser.nombre})</option>
-          ${otrosLideres.length>0 ? `<optgroup label="Asignadores">${otrosLideres.map(u=>`<option value="${u.uid}|${u.nombre}|lider">${u.nombre}</option>`).join('')}</optgroup>` : ''}
-          ${colaboradores.length>0 ? `<optgroup label="Colaboradores">${colaboradores.map(u=>`<option value="${u.uid}|${u.nombre}|colaborador">${u.nombre}</option>`).join('')}</optgroup>` : ''}
+          ${otrosLideres.length>0 ? `<optgroup label="Asignadores">
+            ${otrosLideres.map(u=>`<option value="${u.uid}|${u.nombre}|lider">${u.nombre}</option>`).join('')}
+          </optgroup>` : ''}
+          ${colaboradores.length>0 ? `<optgroup label="Colaboradores">
+            ${colaboradores.map(u=>`<option value="${u.uid}|${u.nombre}|colaborador">${u.nombre}</option>`).join('')}
+          </optgroup>` : ''}
         </select>
       </div>
       <div class="grid-2">
@@ -537,8 +1125,21 @@ function pageCrear(){setTimeout(()=>{const btn=document.getElementById('btn-crea
       </div>
       <button class="btn-primary" id="btn-crear-compromiso" style="max-width:220px;">Crear compromiso</button>
     </div>
-  `;}
-function pageAsignar(){setTimeout(()=>{const btn=document.getElementById('btn-asignar-compromiso');if(btn)btn.onclick=()=>crearCompromiso(currentUser.rol==='administrador'?'cualquiera':'lider');},0);const lideres=orgUsuarios.filter(u=>u.rol==='lider');const colaboradores=orgUsuarios.filter(u=>u.rol==='colaborador');const esAdmin=currentUser.rol==='administrador';return`
+  `;
+}
+
+// ---------- GERENTE/ADMINISTRADOR: ASIGNAR ----------
+function pageAsignar(){
+  setTimeout(()=>{
+    const btn = document.getElementById('btn-asignar-compromiso');
+    if(btn) btn.onclick = ()=> crearCompromiso(currentUser.rol==='administrador' ? 'cualquiera' : 'lider');
+  },0);
+
+  const lideres = orgUsuarios.filter(u=>u.rol==='lider');
+  const colaboradores = orgUsuarios.filter(u=>u.rol==='colaborador');
+  const esAdmin = currentUser.rol==='administrador';
+
+  return `
     <div class="page-header">
       <div><h1>Asignar compromiso</h1>
       <div class="sub">Puedes asignar a cualquier asignador o colaborador</div></div>
@@ -546,7 +1147,14 @@ function pageAsignar(){setTimeout(()=>{const btn=document.getElementById('btn-as
     <div class="card">
       <div class="field"><label>Título del compromiso</label><input type="text" id="c-titulo" placeholder="Ej: Preparar presupuesto trimestral"></div>
       <div class="field"><label>Descripción</label><input type="text" id="c-desc" placeholder="Detalles, contexto o instrucciones"></div>
-      ${orgProcesos.length>0 ? `<div class="field"><label>Proceso<span class="hint"style="font-weight:400;">(opcional)</span></label><select id="c-proceso"><option value="">Sin proceso</option>${orgProcesos.map(p=>`<option value="${p}">${p}</option>`).join('')}</select></div>` : ''}
+      ${orgProcesos.length>0 ? `
+      <div class="field">
+        <label>Proceso <span class="hint" style="font-weight:400;">(opcional)</span></label>
+        <select id="c-proceso">
+          <option value="">Sin proceso</option>
+          ${orgProcesos.map(p=>`<option value="${p}">${p}</option>`).join('')}
+        </select>
+      </div>` : ''}
       <div class="field">
         <label>Responsable</label>
         <select id="c-responsable">
@@ -566,26 +1174,88 @@ function pageAsignar(){setTimeout(()=>{const btn=document.getElementById('btn-as
       </div>
       <button class="btn-primary" id="btn-asignar-compromiso" style="max-width:220px;">Asignar compromiso</button>
     </div>
-  `;}
-async function crearCompromiso(){const titulo=document.getElementById('c-titulo').value.trim();const desc=document.getElementById('c-desc').value.trim();const respVal=document.getElementById('c-responsable').value;const inicio=document.getElementById('c-inicio').value;const fecha=document.getElementById('c-fecha').value;const procesoEl=document.getElementById('c-proceso');const proceso=procesoEl?procesoEl.value:'';if(!titulo||!respVal||!fecha){alert('Completa título, responsable y fecha límite.');return;}
-const[respUid,respNombre,respRol]=respVal.split('|');const aprobadoInicial=currentUser.rol!=='lider'||!orgRequiereHabilitacion;await addDoc(collection(db,'compromisos'),{orgCode:currentUser.orgCode,titulo,descripcion:desc,responsableUid:respUid,responsableNombre:respNombre,responsableRol:respRol,asignaUid:currentUser.uid,asignaNombre:currentUser.nombre,asignaRol:currentUser.rol,fechaInicio:inicio||fecha,fechaLimite:fecha,proceso:proceso||null,avance:0,estado:'pendiente',aprobado:aprobadoInicial,comentarios:[],creadoEn:serverTimestamp()});if(aprobadoInicial&&respUid!==currentUser.uid){enviarCorreo(respUid,`Nuevo compromiso asignado: ${titulo}`,`${currentUser.nombre} te asignó un nuevo compromiso.`,titulo,fecha);}
-renderPage(currentUser.rol==='lider'?'misasignados':'todos');}
-function pageMisAsignados(){const list=allCompromisos.filter(c=>c.asignaUid===currentUser.uid).map(c=>({...c,estadoReal:computeEstado(c)}));return`
+  `;
+}
+
+async function crearCompromiso(){
+  const titulo = document.getElementById('c-titulo').value.trim();
+  const desc = document.getElementById('c-desc').value.trim();
+  const respVal = document.getElementById('c-responsable').value;
+  const inicio = document.getElementById('c-inicio').value;
+  const fecha = document.getElementById('c-fecha').value;
+  const procesoEl = document.getElementById('c-proceso');
+  const proceso = procesoEl ? procesoEl.value : '';
+  if(!titulo || !respVal || !fecha){ alert('Completa título, responsable y fecha límite.'); return; }
+  const [respUid, respNombre, respRol] = respVal.split('|');
+  const aprobadoInicial = currentUser.rol !== 'lider' || !orgRequiereHabilitacion;
+
+  await addDoc(collection(db,'compromisos'), {
+    orgCode: currentUser.orgCode,
+    titulo, descripcion: desc,
+    responsableUid: respUid, responsableNombre: respNombre, responsableRol: respRol,
+    asignaUid: currentUser.uid, asignaNombre: currentUser.nombre, asignaRol: currentUser.rol,
+    fechaInicio: inicio || fecha, fechaLimite: fecha,
+    proceso: proceso || null,
+    avance: 0,
+    estado: 'pendiente',
+    aprobado: aprobadoInicial,
+    comentarios: [],
+    creadoEn: serverTimestamp()
+  });
+
+  if(aprobadoInicial && respUid!==currentUser.uid){
+    enviarCorreo(respUid, `Nuevo compromiso asignado: ${titulo}`, `${currentUser.nombre} te asignó un nuevo compromiso.`, titulo, fecha);
+  }
+
+  renderPage(currentUser.rol==='lider' ? 'misasignados' : 'todos');
+}
+
+// ---------- LIDER: LO QUE ASIGNÉ ----------
+function pageMisAsignados(){
+  const list = allCompromisos.filter(c=>c.asignaUid===currentUser.uid).map(c=>({...c, estadoReal: computeEstado(c)}));
+  return `
     <div class="page-header">
       <div><h1>Lo que asigné</h1><div class="sub">${list.length} compromisos creados por ti</div></div>
     </div>
     ${list.length===0 ? emptyState('Aún no has creado compromisos.') : list.map(c=>compromisoCard(c)).join('')}
-  `;}
-function pageMisTareas(){const list=allCompromisos.filter(c=>c.responsableUid===currentUser.uid).map(c=>({...c,estadoReal:computeEstado(c)})).filter(c=>c.estadoReal!=='sin_habilitar');return`
+  `;
+}
+
+// ---------- MIS COMPROMISOS (líder y colaborador) ----------
+function pageMisTareas(){
+  const list = allCompromisos.filter(c=>c.responsableUid===currentUser.uid).map(c=>({...c, estadoReal: computeEstado(c)})).filter(c=>c.estadoReal!=='sin_habilitar');
+  return `
     <div class="page-header">
       <div><h1>Mis compromisos</h1><div class="sub">${list.length} asignados a ti</div></div>
     </div>
     ${list.length===0 ? emptyState('No tienes compromisos asignados todavía.') : list.map(c=>compromisoCard(c)).join('')}
-  `;}
-function pageEquipo(){setTimeout(()=>{const btnUser=document.getElementById('btn-crear-usuario');if(btnUser)btnUser.onclick=crearUsuarioDesdeAdmin;const btnCargo=document.getElementById('btn-add-cargo');if(btnCargo)btnCargo.onclick=agregarCargo;const btnProceso=document.getElementById('btn-add-proceso');if(btnProceso)btnProceso.onclick=agregarProceso;const chkHab=document.getElementById('chk-requiere-habilitacion');if(chkHab)chkHab.onchange=(e)=>updateDoc(doc(db,'organizaciones',currentUser.orgCode),{requiereHabilitacion:e.target.checked});},0);const equipo=orgUsuarios.filter(u=>u.uid!==currentUser.uid);const cargoOptions=orgCargos.length===0?`<option value="">Primero agrega un cargo abajo</option>`:orgCargos.map(c=>`<option value="${c}">${c}</option>`).join('');return`
+  `;
+}
+
+// ---------- ADMINISTRADOR: EQUIPO Y CARGOS ----------
+function pageEquipo(){
+  setTimeout(()=>{
+    const btnUser = document.getElementById('btn-crear-usuario');
+    if(btnUser) btnUser.onclick = crearUsuarioDesdeAdmin;
+    const btnCargo = document.getElementById('btn-add-cargo');
+    if(btnCargo) btnCargo.onclick = agregarCargo;
+    const btnProceso = document.getElementById('btn-add-proceso');
+    if(btnProceso) btnProceso.onclick = agregarProceso;
+    const chkHab = document.getElementById('chk-requiere-habilitacion');
+    if(chkHab) chkHab.onchange = (e)=> updateDoc(doc(db,'organizaciones',currentUser.orgCode), { requiereHabilitacion: e.target.checked });
+  },0);
+
+  const equipo = orgUsuarios.filter(u=>u.uid!==currentUser.uid);
+  const cargoOptions = orgCargos.length===0
+    ? `<option value="">Primero agrega un cargo abajo</option>`
+    : orgCargos.map(c=>`<option value="${c}">${c}</option>`).join('');
+
+  return `
     <div class="page-header">
       <div><h1>Equipo y cargos</h1><div class="sub">Define los cargos de tu cooperativa y crea las cuentas de tu equipo</div></div>
     </div>
+
+    ${currentUser.esSuperadmin ? cardImagenEntidad() : ''}
 
     <div class="card">
       <h3>Control de lo que asignan los asignadores</h3>
@@ -603,7 +1273,9 @@ function pageEquipo(){setTimeout(()=>{const btnUser=document.getElementById('btn
         <button class="btn-primary" id="btn-add-cargo" style="width:auto; padding:11px 18px;">Agregar</button>
       </div>
       <div class="cargos-chips">
-        ${orgCargos.length===0 ? `<span class="hint">Aún no has definido cargos.</span>` : orgCargos.map(c=>`<span class="cargo-chip">${escapeHtml(c)}<button onclick="eliminarCargo('${escapeHtml(c)}')">✕</button></span>`).join('')}
+        ${orgCargos.length===0 ? `<span class="hint">Aún no has definido cargos.</span>` : orgCargos.map(c=>`
+          <span class="cargo-chip">${escapeHtml(c)} <button onclick="eliminarCargo('${escapeHtml(c)}')">✕</button></span>
+        `).join('')}
       </div>
     </div>
 
@@ -615,7 +1287,9 @@ function pageEquipo(){setTimeout(()=>{const btnUser=document.getElementById('btn
         <button class="btn-primary" id="btn-add-proceso" style="width:auto; padding:11px 18px;">Agregar</button>
       </div>
       <div class="cargos-chips">
-        ${orgProcesos.length===0 ? `<span class="hint">Aún no has definido procesos.</span>` : orgProcesos.map(p=>`<span class="cargo-chip">${escapeHtml(p)}<button onclick="eliminarProceso('${escapeHtml(p)}')">✕</button></span>`).join('')}
+        ${orgProcesos.length===0 ? `<span class="hint">Aún no has definido procesos.</span>` : orgProcesos.map(p=>`
+          <span class="cargo-chip">${escapeHtml(p)} <button onclick="eliminarProceso('${escapeHtml(p)}')">✕</button></span>
+        `).join('')}
       </div>
     </div>
 
@@ -649,11 +1323,23 @@ function pageEquipo(){setTimeout(()=>{const btnUser=document.getElementById('btn
     <div class="card">
       <h3>Personas en ${currentUser.orgNombre} (${equipo.length})</h3>
       <div class="equipo-list">
-        ${equipo.length===0 ? emptyState('Aún no has agregado a nadie.') : equipo.map(u=> u.uid===editandoUid ? filaEdicionUsuario(u) : `<div class="equipo-item"><div><span class="nombre">${escapeHtml(u.nombre)}</span><span class="correo">${escapeHtml(u.correo)}</span></div><div class="tags">${u.cargo?`<span class="cargo-tag">${escapeHtml(u.cargo)}</span>`:''}<span class="rol-tag rol-${u.rol}">${ROLE_LABEL[u.rol]||u.rol}</span><button class="btn-mini btn-mini-purple"onclick="editarUsuario('${u.uid}')">Editar</button></div></div>`).join('')}
+        ${equipo.length===0 ? emptyState('Aún no has agregado a nadie.') : equipo.map(u=> u.uid===editandoUid ? filaEdicionUsuario(u) : `
+          <div class="equipo-item">
+            <div><span class="nombre">${escapeHtml(u.nombre)}</span><span class="correo">${escapeHtml(u.correo)}</span></div>
+            <div class="tags">
+              ${u.cargo ? `<span class="cargo-tag">${escapeHtml(u.cargo)}</span>` : ''}
+              <span class="rol-tag rol-${u.rol}">${ROLE_LABEL[u.rol]||u.rol}</span>
+              <button class="btn-mini btn-mini-purple" onclick="editarUsuario('${u.uid}')">Editar</button>
+            </div>
+          </div>`).join('')}
       </div>
     </div>
-  `;}
-function filaEdicionUsuario(u){const cargoOptions=orgCargos.map(c=>`<option value="${c}" ${c===u.cargo?'selected':''}>${c}</option>`).join('');return`
+  `;
+}
+
+function filaEdicionUsuario(u){
+  const cargoOptions = orgCargos.map(c=>`<option value="${c}" ${c===u.cargo?'selected':''}>${c}</option>`).join('');
+  return `
     <div class="equipo-item" style="flex-direction:column; align-items:stretch; background:var(--lavender-50); border-radius:10px; margin:8px 0; border-top:none;">
       <div class="grid-2" style="margin-bottom:10px;">
         <div class="field" style="margin-bottom:0;"><label>Nombre</label><input type="text" id="edit-nombre-${u.uid}" value="${escapeHtml(u.nombre)}"></div>
@@ -679,59 +1365,241 @@ function filaEdicionUsuario(u){const cargoOptions=orgCargos.map(c=>`<option valu
         <button class="btn-mini" style="background:var(--lavender-100); color:var(--ink-600);" onclick="cancelarEdicionUsuario()">Cancelar</button>
       </div>
     </div>
-  `;}
-window.editarUsuario=function(uid){editandoUid=uid;renderPage('equipo');}
-window.cancelarEdicionUsuario=function(){editandoUid=null;renderPage('equipo');}
-window.guardarEdicionUsuario=async function(uid){const nombre=document.getElementById(`edit-nombre-${uid}`).value.trim();const rol=document.getElementById(`edit-rol-${uid}`).value;const cargo=document.getElementById(`edit-cargo-${uid}`).value;if(!nombre){alert('El nombre no puede quedar vacío.');return;}
-await updateDoc(doc(db,'usuarios',uid),{nombre,rol,cargo});editandoUid=null;renderPage('equipo');}
-window.eliminarCargo=async function(cargo){await updateDoc(doc(db,'organizaciones',currentUser.orgCode),{cargos:arrayRemove(cargo)});}
-async function agregarCargo(){const input=document.getElementById('nuevo-cargo');const cargo=input.value.trim();if(!cargo)return;if(orgCargos.includes(cargo)){input.value='';return;}
-await updateDoc(doc(db,'organizaciones',currentUser.orgCode),{cargos:arrayUnion(cargo)});input.value='';}
-window.eliminarProceso=async function(proceso){await updateDoc(doc(db,'organizaciones',currentUser.orgCode),{procesos:arrayRemove(proceso)});}
-async function agregarProceso(){const input=document.getElementById('nuevo-proceso');const proceso=input.value.trim();if(!proceso)return;if(orgProcesos.includes(proceso)){input.value='';return;}
-await updateDoc(doc(db,'organizaciones',currentUser.orgCode),{procesos:arrayUnion(proceso)});input.value='';}
-async function crearUsuarioDesdeAdmin(){const msgBox=document.getElementById('equipo-msg');msgBox.innerHTML='';const nombre=document.getElementById('eq-nombre').value.trim();const correo=document.getElementById('eq-correo').value.trim();const pass=document.getElementById('eq-pass').value;const rol=document.getElementById('eq-rol').value;const cargo=document.getElementById('eq-cargo').value;if(!nombre||!correo||!pass){msgBox.innerHTML=`<div class="error-msg">Completa todos los campos.</div>`;return;}
-if(pass.length<6){msgBox.innerHTML=`<div class="error-msg">La contraseña debe tener al menos 6 caracteres.</div>`;return;}
-if(!cargo){msgBox.innerHTML=`<div class="error-msg">Agrega y selecciona un cargo primero.</div>`;return;}
-const btn=document.getElementById('btn-crear-usuario');btn.textContent='Creando...';let secondaryApp;try{secondaryApp=initializeApp(firebaseConfig,'Secondary-'+Date.now());const secondaryAuth=getAuth(secondaryApp);const cred=await createUserWithEmailAndPassword(secondaryAuth,correo,pass);await setDoc(doc(db,'usuarios',cred.user.uid),{nombre,correo,rol,cargo,orgCode:currentUser.orgCode,creadoEn:serverTimestamp(),creadoPor:currentUser.uid});await signOut(secondaryAuth);await deleteApp(secondaryApp);msgBox.innerHTML=`<div class="success-msg">Cuenta creada para ${escapeHtml(nombre)}. Compártele el correo y la contraseña.</div>`;document.getElementById('eq-nombre').value='';document.getElementById('eq-correo').value='';document.getElementById('eq-pass').value='';}catch(err){if(secondaryApp){try{await deleteApp(secondaryApp);}catch(e){}}
-msgBox.innerHTML=`<div class="error-msg">${traducirError(err.code)}</div>`;}
-btn.textContent='Crear cuenta';}
-const HOY=new Date();let cronoMes=HOY.getMonth()+1;let cronoAnio=HOY.getFullYear();const ESTADO_COLOR={pendiente:'var(--purple-500)',cumplido:'var(--purple-700)',no_cumplido:'var(--pink-500)',incumplido:'var(--danger)'};function pageCronograma(){setTimeout(()=>{const selMes=document.getElementById('cr-mes');const selAnio=document.getElementById('cr-anio');if(selMes)selMes.onchange=(e)=>{cronoMes=Number(e.target.value);renderPage('cronograma');};if(selAnio)selAnio.onchange=(e)=>{cronoAnio=Number(e.target.value);renderPage('cronograma');};},0);const diasEnMes=new Date(cronoAnio,cronoMes,0).getDate();const monthStart=new Date(cronoAnio,cronoMes-1,1);const monthEnd=new Date(cronoAnio,cronoMes-1,diasEnMes);const list=allCompromisos.map(c=>({...c,estadoReal:computeEstado(c)})).filter(c=>{if(!c.fechaLimite)return false;const ini=new Date((c.fechaInicio||c.fechaLimite)+'T00:00:00');const fin=new Date(c.fechaLimite+'T00:00:00');return fin>=monthStart&&ini<=monthEnd;});const anioActual=HOY.getFullYear();const anios=[anioActual-1,anioActual,anioActual+1];const filas=list.map(c=>{const ini=new Date((c.fechaInicio||c.fechaLimite)+'T00:00:00');const fin=new Date(c.fechaLimite+'T00:00:00');const startDay=ini<monthStart?1:ini.getDate();const endDay=fin>monthEnd?diasEnMes:fin.getDate();const pctStart=((startDay-1)/diasEnMes)*100;const pctWidth=((endDay-startDay+1)/diasEnMes)*100;return`
+  `;
+}
+
+window.editarUsuario = function(uid){
+  editandoUid = uid;
+  renderPage('equipo');
+}
+
+window.cancelarEdicionUsuario = function(){
+  editandoUid = null;
+  renderPage('equipo');
+}
+
+window.guardarEdicionUsuario = async function(uid){
+  const nombre = document.getElementById(`edit-nombre-${uid}`).value.trim();
+  const rol = document.getElementById(`edit-rol-${uid}`).value;
+  const cargo = document.getElementById(`edit-cargo-${uid}`).value;
+  if(!nombre){ alert('El nombre no puede quedar vacío.'); return; }
+  await updateDoc(doc(db,'usuarios',uid), { nombre, rol, cargo });
+  editandoUid = null;
+  renderPage('equipo');
+}
+
+window.eliminarCargo = async function(cargo){
+  await updateDoc(doc(db,'organizaciones',currentUser.orgCode), { cargos: arrayRemove(cargo) });
+}
+
+async function agregarCargo(){
+  const input = document.getElementById('nuevo-cargo');
+  const cargo = input.value.trim();
+  if(!cargo) return;
+  if(orgCargos.includes(cargo)){ input.value=''; return; }
+  await updateDoc(doc(db,'organizaciones',currentUser.orgCode), { cargos: arrayUnion(cargo) });
+  input.value = '';
+}
+
+window.eliminarProceso = async function(proceso){
+  await updateDoc(doc(db,'organizaciones',currentUser.orgCode), { procesos: arrayRemove(proceso) });
+}
+
+async function agregarProceso(){
+  const input = document.getElementById('nuevo-proceso');
+  const proceso = input.value.trim();
+  if(!proceso) return;
+  if(orgProcesos.includes(proceso)){ input.value=''; return; }
+  await updateDoc(doc(db,'organizaciones',currentUser.orgCode), { procesos: arrayUnion(proceso) });
+  input.value = '';
+}
+
+async function crearUsuarioDesdeAdmin(){
+  const msgBox = document.getElementById('equipo-msg');
+  msgBox.innerHTML = '';
+  const nombre = document.getElementById('eq-nombre').value.trim();
+  const correo = document.getElementById('eq-correo').value.trim();
+  const pass = document.getElementById('eq-pass').value;
+  const rol = document.getElementById('eq-rol').value;
+  const cargo = document.getElementById('eq-cargo').value;
+
+  if(!nombre || !correo || !pass){ msgBox.innerHTML = `<div class="error-msg">Completa todos los campos.</div>`; return; }
+  if(pass.length < 6){ msgBox.innerHTML = `<div class="error-msg">La contraseña debe tener al menos 6 caracteres.</div>`; return; }
+  if(!cargo){ msgBox.innerHTML = `<div class="error-msg">Agrega y selecciona un cargo primero.</div>`; return; }
+
+  const btn = document.getElementById('btn-crear-usuario');
+  btn.textContent = 'Creando...';
+
+  let secondaryApp;
+  try{
+    secondaryApp = initializeApp(firebaseConfig, 'Secondary-' + Date.now());
+    const secondaryAuth = getAuth(secondaryApp);
+    const cred = await createUserWithEmailAndPassword(secondaryAuth, correo, pass);
+
+    await setDoc(doc(db,'usuarios',cred.user.uid), {
+      nombre, correo, rol, cargo, orgCode: currentUser.orgCode,
+      creadoEn: serverTimestamp(), creadoPor: currentUser.uid
+    });
+
+    await signOut(secondaryAuth);
+    await deleteApp(secondaryApp);
+
+    msgBox.innerHTML = `<div class="success-msg">Cuenta creada para ${escapeHtml(nombre)}. Compártele el correo y la contraseña.</div>`;
+    document.getElementById('eq-nombre').value = '';
+    document.getElementById('eq-correo').value = '';
+    document.getElementById('eq-pass').value = '';
+  } catch(err){
+    if(secondaryApp){ try{ await deleteApp(secondaryApp); }catch(e){} }
+    msgBox.innerHTML = `<div class="error-msg">${traducirError(err.code)}</div>`;
+  }
+  btn.textContent = 'Crear cuenta';
+}
+
+// ---------- CRONOGRAMA ----------
+const HOY = new Date();
+let cronoMes = HOY.getMonth()+1;
+let cronoAnio = HOY.getFullYear();
+const ESTADO_COLOR = { pendiente:'var(--purple-500)', cumplido:'var(--purple-700)', no_cumplido:'var(--pink-500)', incumplido:'var(--danger)' };
+
+function pageCronograma(){
+  setTimeout(()=>{
+    const selMes = document.getElementById('cr-mes');
+    const selAnio = document.getElementById('cr-anio');
+    if(selMes) selMes.onchange = (e)=>{ cronoMes = Number(e.target.value); renderPage('cronograma'); };
+    if(selAnio) selAnio.onchange = (e)=>{ cronoAnio = Number(e.target.value); renderPage('cronograma'); };
+  },0);
+
+  const diasEnMes = new Date(cronoAnio, cronoMes, 0).getDate();
+  const monthStart = new Date(cronoAnio, cronoMes-1, 1);
+  const monthEnd = new Date(cronoAnio, cronoMes-1, diasEnMes);
+
+  const list = allCompromisos
+    .map(c=>({...c, estadoReal: computeEstado(c)}))
+    .filter(c=>{
+      if(!c.fechaLimite) return false;
+      const ini = new Date((c.fechaInicio || c.fechaLimite)+'T00:00:00');
+      const fin = new Date(c.fechaLimite+'T00:00:00');
+      return fin >= monthStart && ini <= monthEnd;
+    });
+
+  const anioActual = HOY.getFullYear();
+  const anios = [anioActual-1, anioActual, anioActual+1];
+
+  const filas = list.map(c=>{
+    const ini = new Date((c.fechaInicio || c.fechaLimite)+'T00:00:00');
+    const fin = new Date(c.fechaLimite+'T00:00:00');
+    const startDay = ini < monthStart ? 1 : ini.getDate();
+    const endDay = fin > monthEnd ? diasEnMes : fin.getDate();
+    const pctStart = ((startDay-1)/diasEnMes)*100;
+    const pctWidth = ((endDay-startDay+1)/diasEnMes)*100;
+    return `
       <div class="crono-row">
         <div class="crono-label">${escapeHtml(c.titulo)}<span class="sub-label">${escapeHtml(c.responsableNombre)}</span></div>
         <div class="crono-track">
           <div class="crono-bar" style="left:${pctStart}%; width:${pctWidth}%; background:${ESTADO_COLOR[c.estadoReal]};" title="${ESTADO_LABEL[c.estadoReal]}"></div>
         </div>
-      </div>`;}).join('');const dayHeaders=Array.from({length:diasEnMes},(_,i)=>`<span>${i+1}</span>`).join('');return`
+      </div>`;
+  }).join('');
+
+  const dayHeaders = Array.from({length:diasEnMes}, (_,i)=>`<span>${i+1}</span>`).join('');
+
+  return `
     <div class="page-header">
       <div><h1>Cronograma</h1><div class="sub">Compromisos de ${MES_NOMBRES[cronoMes-1]} ${cronoAnio}, según su fecha de inicio y fecha límite</div></div>
     </div>
     <div class="filters">
       <select id="cr-mes">
-        ${MES_NOMBRES.map((m,i)=>`<option value="${i+1}"${i+1===cronoMes?'selected':''}>${m}</option>`).join('')}
+        ${MES_NOMBRES.map((m,i)=>`<option value="${i+1}" ${i+1===cronoMes?'selected':''}>${m}</option>`).join('')}
       </select>
       <select id="cr-anio">
-        ${anios.map(a=>`<option value="${a}"${a===cronoAnio?'selected':''}>${a}</option>`).join('')}
+        ${anios.map(a=>`<option value="${a}" ${a===cronoAnio?'selected':''}>${a}</option>`).join('')}
       </select>
     </div>
     <div class="crono-wrap">
-      ${list.length===0 ? emptyState('No hay compromisos con fechas en este mes.') : `<div class="crono-headers"><div></div><div class="crono-days"style="grid-template-columns:repeat(${diasEnMes},1fr);">${dayHeaders}</div></div>${filas}
-`}
+      ${list.length===0 ? emptyState('No hay compromisos con fechas en este mes.') : `
+        <div class="crono-headers">
+          <div></div>
+          <div class="crono-days" style="grid-template-columns:repeat(${diasEnMes},1fr);">${dayHeaders}</div>
+        </div>
+        ${filas}
+      `}
     </div>
-  `;}
-let reporteMes='todos';let reporteAnio='todos';let reporteEstado='todos';let reporteProceso='todos';function pageReportes(){const listaCompleta=allCompromisos.map(c=>({...c,estadoReal:computeEstado(c)}));const anios=[...new Set(listaCompleta.filter(c=>c.fechaLimite).map(c=>c.fechaLimite.slice(0,4)))].sort();const procesosDisponibles=[...new Set(listaCompleta.filter(c=>c.proceso).map(c=>c.proceso))];const list=listaCompleta.filter(c=>{if(reporteEstado!=='todos'&&c.estadoReal!==reporteEstado)return false;if(reporteProceso!=='todos'&&c.proceso!==reporteProceso)return false;if(c.fechaLimite){if(reporteMes!=='todos'&&c.fechaLimite.slice(5,7)!==reporteMes)return false;if(reporteAnio!=='todos'&&c.fechaLimite.slice(0,4)!==reporteAnio)return false;}else if(reporteMes!=='todos'||reporteAnio!=='todos'){return false;}
-return true;});setTimeout(()=>{const selMes=document.getElementById('rp-mes');const selAnio=document.getElementById('rp-anio');const selEstado=document.getElementById('rp-estado');const selProceso=document.getElementById('rp-proceso');if(selMes)selMes.onchange=(e)=>{reporteMes=e.target.value;renderPage('reportes');};if(selAnio)selAnio.onchange=(e)=>{reporteAnio=e.target.value;renderPage('reportes');};if(selEstado)selEstado.onchange=(e)=>{reporteEstado=e.target.value;renderPage('reportes');};if(selProceso)selProceso.onchange=(e)=>{reporteProceso=e.target.value;renderPage('reportes');};},0);function tablaPor(campoUid,campoNombre){const grupos={};list.forEach(c=>{const key=c[campoUid];if(!grupos[key])grupos[key]={nombre:c[campoNombre],total:0,cumplido:0,no_cumplido:0,incumplido:0,pendiente:0,sin_habilitar:0,sumAvance:0};grupos[key].total++;grupos[key][c.estadoReal]++;grupos[key].sumAvance+=(c.avance||0);});const filas=Object.values(grupos).sort((a,b)=>b.total-a.total);if(filas.length===0)return emptyState('Sin datos con este filtro.');return`
+  `;
+}
+
+// ---------- REPORTES ----------
+let reporteMes = 'todos';
+let reporteAnio = 'todos';
+let reporteEstado = 'todos';
+let reporteProceso = 'todos';
+
+function pageReportes(){
+  const listaCompleta = allCompromisos.map(c=>({...c, estadoReal: computeEstado(c)}));
+  const anios = [...new Set(listaCompleta.filter(c=>c.fechaLimite).map(c=>c.fechaLimite.slice(0,4)))].sort();
+  const procesosDisponibles = [...new Set(listaCompleta.filter(c=>c.proceso).map(c=>c.proceso))];
+
+  const list = listaCompleta.filter(c=>{
+    if(reporteEstado!=='todos' && c.estadoReal!==reporteEstado) return false;
+    if(reporteProceso!=='todos' && c.proceso!==reporteProceso) return false;
+    if(c.fechaLimite){
+      if(reporteMes!=='todos' && c.fechaLimite.slice(5,7)!==reporteMes) return false;
+      if(reporteAnio!=='todos' && c.fechaLimite.slice(0,4)!==reporteAnio) return false;
+    } else if(reporteMes!=='todos' || reporteAnio!=='todos'){
+      return false;
+    }
+    return true;
+  });
+
+  setTimeout(()=>{
+    const selMes = document.getElementById('rp-mes');
+    const selAnio = document.getElementById('rp-anio');
+    const selEstado = document.getElementById('rp-estado');
+    const selProceso = document.getElementById('rp-proceso');
+    if(selMes) selMes.onchange = (e)=>{ reporteMes = e.target.value; renderPage('reportes'); };
+    if(selAnio) selAnio.onchange = (e)=>{ reporteAnio = e.target.value; renderPage('reportes'); };
+    if(selEstado) selEstado.onchange = (e)=>{ reporteEstado = e.target.value; renderPage('reportes'); };
+    if(selProceso) selProceso.onchange = (e)=>{ reporteProceso = e.target.value; renderPage('reportes'); };
+  },0);
+
+  function tablaPor(campoUid, campoNombre){
+    const grupos = {};
+    list.forEach(c=>{
+      const key = c[campoUid];
+      if(!grupos[key]) grupos[key] = { nombre: c[campoNombre], total:0, cumplido:0, no_cumplido:0, incumplido:0, pendiente:0, sin_habilitar:0, sumAvance:0 };
+      grupos[key].total++;
+      grupos[key][c.estadoReal]++;
+      grupos[key].sumAvance += (c.avance||0);
+    });
+    const filas = Object.values(grupos).sort((a,b)=> b.total - a.total);
+    if(filas.length===0) return emptyState('Sin datos con este filtro.');
+    return `
       <table class="tabla-reporte">
         <thead><tr><th>Nombre</th><th>Total</th><th>Cumplidos</th><th>Incumplidos</th><th>Avance prom.</th><th>% cumplimiento</th></tr></thead>
         <tbody>
           ${filas.map(f=>{
             const pct = f.total>0 ? Math.round((f.cumplido/f.total)*100) : 0;
             const avgAvance = f.total>0 ? Math.round(f.sumAvance/f.total) : 0;
-            return `<tr><td>${escapeHtml(f.nombre)}</td><td class="num">${f.total}</td><td class="num">${f.cumplido}</td><td class="num">${f.incumplido}</td><td><div class="barra-cumpl"><div class="barra-cumpl-fill"style="background:var(--pink-500); width:${avgAvance}%;"></div></div><span style="font-size:11px; color:var(--ink-600);">${avgAvance}%</span></td><td><div class="barra-cumpl"><div class="barra-cumpl-fill"style="width:${pct}%;"></div></div><span style="font-size:11px; color:var(--ink-600);">${pct}%</span></td></tr>`;
+            return `<tr>
+              <td>${escapeHtml(f.nombre)}</td>
+              <td class="num">${f.total}</td>
+              <td class="num">${f.cumplido}</td>
+              <td class="num">${f.incumplido}</td>
+              <td><div class="barra-cumpl"><div class="barra-cumpl-fill" style="background:var(--pink-500); width:${avgAvance}%;"></div></div><span style="font-size:11px; color:var(--ink-600);">${avgAvance}%</span></td>
+              <td><div class="barra-cumpl"><div class="barra-cumpl-fill" style="width:${pct}%;"></div></div><span style="font-size:11px; color:var(--ink-600);">${pct}%</span></td>
+            </tr>`;
           }).join('')}
         </tbody>
-      </table>`;}
-const filtroTexto=[reporteEstado!=='todos'?ESTADO_LABEL[reporteEstado]:null,reporteProceso!=='todos'?reporteProceso:null,reporteMes!=='todos'?MES_NOMBRES[Number(reporteMes)-1]:null,reporteAnio!=='todos'?reporteAnio:null].filter(Boolean).join(' · ')||'sin filtros';return`
+      </table>`;
+  }
+
+  const filtroTexto = [
+    reporteEstado!=='todos' ? ESTADO_LABEL[reporteEstado] : null,
+    reporteProceso!=='todos' ? reporteProceso : null,
+    reporteMes!=='todos' ? MES_NOMBRES[Number(reporteMes)-1] : null,
+    reporteAnio!=='todos' ? reporteAnio : null
+  ].filter(Boolean).join(' · ') || 'sin filtros';
+
+  return `
     <div class="page-header">
       <div><h1>Reportes</h1><div class="sub">${currentUser.orgNombre} · ${list.length} de ${listaCompleta.length} compromisos</div></div>
       <div class="no-print" style="display:flex; gap:8px;">
@@ -739,7 +1607,7 @@ const filtroTexto=[reporteEstado!=='todos'?ESTADO_LABEL[reporteEstado]:null,repo
         <button class="btn-primary" style="width:auto; padding:11px 20px;" onclick="window.print()">🖨️ Imprimir reporte</button>
       </div>
     </div>
-    <div class="print-only" style="margin-bottom:14px; font-size:12.5px; color:var(--ink-600);">${currentUser.orgNombre} · filtro: ${filtroTexto} · generado el ${new Date().toLocaleDateString('es-CO',{day:'numeric',month:'long',year:'numeric'})}</div>
+    <div class="print-only" style="margin-bottom:14px; font-size:12.5px; color:var(--ink-600);">${logoPrintHtml()}${currentUser.orgNombre} · filtro: ${filtroTexto} · generado el ${new Date().toLocaleDateString('es-CO',{day:'numeric',month:'long',year:'numeric'})}</div>
     <div class="filters no-print">
       <select id="rp-estado">
         <option value="todos" ${reporteEstado==='todos'?'selected':''}>Todos los estados</option>
@@ -749,14 +1617,17 @@ const filtroTexto=[reporteEstado!=='todos'?ESTADO_LABEL[reporteEstado]:null,repo
         <option value="incumplido" ${reporteEstado==='incumplido'?'selected':''}>Incumplido</option>
         <option value="sin_habilitar" ${reporteEstado==='sin_habilitar'?'selected':''}>Por habilitar</option>
       </select>
-      ${procesosDisponibles.length>0 ? `<select id="rp-proceso"><option value="todos"${reporteProceso==='todos'?'selected':''}>Proceso:todos</option>${procesosDisponibles.map(p=>`<option value="${p}" ${reporteProceso===p?'selected':''}>${p}</option>`).join('')}</select>` : ''}
+      ${procesosDisponibles.length>0 ? `<select id="rp-proceso">
+        <option value="todos" ${reporteProceso==='todos'?'selected':''}>Proceso: todos</option>
+        ${procesosDisponibles.map(p=>`<option value="${p}" ${reporteProceso===p?'selected':''}>${p}</option>`).join('')}
+      </select>` : ''}
       <select id="rp-mes">
         <option value="todos" ${reporteMes==='todos'?'selected':''}>Todos los meses</option>
-        ${MES_NOMBRES.map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}"${reporteMes===String(i+1).padStart(2,'0')?'selected':''}>${m}</option>`).join('')}
+        ${MES_NOMBRES.map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}" ${reporteMes===String(i+1).padStart(2,'0')?'selected':''}>${m}</option>`).join('')}
       </select>
       <select id="rp-anio">
         <option value="todos" ${reporteAnio==='todos'?'selected':''}>Todos los años</option>
-        ${anios.map(a=>`<option value="${a}"${reporteAnio===a?'selected':''}>${a}</option>`).join('')}
+        ${anios.map(a=>`<option value="${a}" ${reporteAnio===a?'selected':''}>${a}</option>`).join('')}
       </select>
     </div>
     <div class="card">
@@ -767,30 +1638,69 @@ const filtroTexto=[reporteEstado!=='todos'?ESTADO_LABEL[reporteEstado]:null,repo
       <h3>Por quién asignó</h3>
       ${tablaPor('asignaUid','asignaNombre')}
     </div>
-    ${procesosDisponibles.length>0 ? `<div class="card"><h3>Por proceso</h3>${tablaPor('proceso','proceso')}</div>` : ''}
-  `;}
-window.limpiarFiltrosReportes=function(){reporteMes='todos';reporteAnio='todos';reporteEstado='todos';reporteProceso='todos';renderPage('reportes');}
-function compromisoCard(c){const fecha=c.fechaLimite?new Date(c.fechaLimite+'T00:00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short',year:'numeric'}):'—';const rangoFecha=(c.fechaInicio&&c.fechaInicio!==c.fechaLimite)?`${new Date(c.fechaInicio+'T00:00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short'})} → ${fecha}`:fecha;const comentarios=(c.comentarios||[]).map(cm=>`
+    ${procesosDisponibles.length>0 ? `
+    <div class="card">
+      <h3>Por proceso</h3>
+      ${tablaPor('proceso','proceso')}
+    </div>` : ''}
+  `;
+}
+
+window.limpiarFiltrosReportes = function(){
+  reporteMes = 'todos'; reporteAnio = 'todos'; reporteEstado = 'todos'; reporteProceso = 'todos';
+  renderPage('reportes');
+}
+
+// ---------- SHARED: COMPROMISO CARD ----------
+function compromisoCard(c){
+  const fecha = c.fechaLimite ? new Date(c.fechaLimite+'T00:00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short',year:'numeric'}) : '—';
+  const rangoFecha = (c.fechaInicio && c.fechaInicio!==c.fechaLimite)
+    ? `${new Date(c.fechaInicio+'T00:00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short'})} → ${fecha}`
+    : fecha;
+  const comentarios = (c.comentarios||[]).map(cm=>`
     <div class="comment">
       <div class="avatar">${(cm.autorNombre||'?').charAt(0).toUpperCase()}</div>
       <div class="body"><span class="who">${cm.autorNombre}</span><span class="when">${cm.fecha||''}</span><div>${escapeHtml(cm.texto)}</div></div>
-    </div>`).join('');const canMark=c.responsableUid===currentUser.uid&&(c.estadoReal==='pendiente'||c.estadoReal==='incumplido');const puedeReagendar=(currentUser.rol==='gerente'||currentUser.rol==='administrador')&&c.estadoReal!=='cumplido';const puedeValidar=(currentUser.rol==='gerente'||currentUser.rol==='administrador')&&c.asignaRol==='lider';let validacionHtml='';if(c.asignaRol==='lider'&&orgRequiereHabilitacion){if(puedeValidar){validacionHtml=`
+    </div>`).join('');
+
+  const canMark = c.responsableUid===currentUser.uid && (c.estadoReal==='pendiente' || c.estadoReal==='incumplido');
+  const puedeReagendar = (currentUser.rol==='gerente' || currentUser.rol==='administrador') && c.estadoReal!=='cumplido';
+  const puedeValidar = (currentUser.rol==='gerente' || currentUser.rol==='administrador') && c.asignaRol==='lider';
+
+  let validacionHtml = '';
+  if(c.asignaRol==='lider' && orgRequiereHabilitacion){
+    if(puedeValidar){
+      validacionHtml = `
         <div style="margin-top:12px; padding:12px 14px; background:${c.aprobado?'var(--lavender-50)':'#FBEAF1'}; border-radius:10px;">
           <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:${c.aprobado?'var(--purple-700)':'var(--danger)'};">
             <input type="checkbox" ${c.aprobado?'checked':''} onchange="toggleAprobado('${c.id}', this.checked)">
             ${c.aprobado ? 'Habilitado — el responsable ya lo puede ver' : 'Habilitar este compromiso'}
           </label>
-          ${!c.aprobado ? `<div class="hint"style="margin-top:4px;">Mientras no lo habilites,${escapeHtml(c.responsableNombre)}no lo verá ni podrá marcarlo.</div>` : ''}
-        </div>`;}else if(!c.aprobado){validacionHtml=`<div class="hint" style="margin-top:10px;">⏳ Este compromiso está esperando que lo habilite la administración de área.</div>`;}}
-const avance=c.avance||0;const avanceHtml=c.estadoReal!=='sin_habilitar'?`
+          ${!c.aprobado ? `<div class="hint" style="margin-top:4px;">Mientras no lo habilites, ${escapeHtml(c.responsableNombre)} no lo verá ni podrá marcarlo.</div>` : ''}
+        </div>`;
+    } else if(!c.aprobado){
+      validacionHtml = `<div class="hint" style="margin-top:10px;">⏳ Este compromiso está esperando que lo habilite la administración de área.</div>`;
+    }
+  }
+
+  const avance = c.avance || 0;
+  const avanceHtml = c.estadoReal!=='sin_habilitar' ? `
     <div class="avance-wrap">
       <div class="avance-top">
         <span class="avance-label">Avance</span>
         <span class="avance-pct">${avance}%</span>
       </div>
       <div class="avance-track"><div class="avance-fill" style="width:${avance}%;"></div></div>
-      ${canMark ? `<div class="avance-edit"><input type="range"min="0"max="100"step="5"value="${avance}"oninput="this.nextElementSibling.textContent=this.value+'%'"onchange="actualizarAvance('${c.id}', this.value)"><span class="avance-pct"style="min-width:38px; text-align:right;">${avance}%</span></div><div class="avance-mini">Mueve la barra para actualizar tu avance.</div>` : ''}
-    </div>`:'';return`
+      ${canMark ? `
+        <div class="avance-edit">
+          <input type="range" min="0" max="100" step="5" value="${avance}" oninput="this.nextElementSibling.textContent=this.value+'%'" onchange="actualizarAvance('${c.id}', this.value)">
+          <span class="avance-pct" style="min-width:38px; text-align:right;">${avance}%</span>
+        </div>
+        <div class="avance-mini">Mueve la barra para actualizar tu avance.</div>
+      ` : ''}
+    </div>` : '';
+
+  return `
     <div class="compromiso">
       <div class="compromiso-top">
         <div>
@@ -808,10 +1718,20 @@ const avance=c.avance||0;const avanceHtml=c.estadoReal!=='sin_habilitar'?`
       ${avanceHtml}
       ${validacionHtml}
       <div class="compromiso-actions">
-        ${canMark ? `<button class="btn-mini btn-mini-purple"onclick="marcarEstado('${c.id}','cumplido')">Marcar cumplido</button><button class="btn-mini btn-mini-pink"onclick="marcarEstado('${c.id}','no_cumplido')">Marcar no cumplido</button>` : ''}
-        ${puedeReagendar ? `<button class="btn-mini"style="background:var(--lavender-100); color:var(--purple-700);"onclick="toggleReagendar('${c.id}')">📅 Reagendar</button>` : ''}
+        ${canMark ? `
+          <button class="btn-mini btn-mini-purple" onclick="marcarEstado('${c.id}','cumplido')">Marcar cumplido</button>
+          <button class="btn-mini btn-mini-pink" onclick="marcarEstado('${c.id}','no_cumplido')">Marcar no cumplido</button>
+        ` : ''}
+        ${puedeReagendar ? `<button class="btn-mini" style="background:var(--lavender-100); color:var(--purple-700);" onclick="toggleReagendar('${c.id}')">📅 Reagendar</button>` : ''}
       </div>
-      ${puedeReagendar ? `<div id="reagendar-${c.id}"class="hidden"style="margin-top:12px; padding:14px; background:var(--lavender-50); border-radius:10px;"><div class="grid-2"><div class="field"style="margin-bottom:8px;"><label>Nueva fecha de inicio</label><input type="date"id="re-inicio-${c.id}"value="${c.fechaInicio||c.fechaLimite||''}"></div><div class="field"style="margin-bottom:8px;"><label>Nueva fecha límite</label><input type="date"id="re-fecha-${c.id}"value="${c.fechaLimite||''}"></div></div><button class="btn-mini btn-mini-purple"onclick="guardarReagenda('${c.id}')">Guardar nueva fecha</button></div>` : ''}
+      ${puedeReagendar ? `
+        <div id="reagendar-${c.id}" class="hidden" style="margin-top:12px; padding:14px; background:var(--lavender-50); border-radius:10px;">
+          <div class="grid-2">
+            <div class="field" style="margin-bottom:8px;"><label>Nueva fecha de inicio</label><input type="date" id="re-inicio-${c.id}" value="${c.fechaInicio||c.fechaLimite||''}"></div>
+            <div class="field" style="margin-bottom:8px;"><label>Nueva fecha límite</label><input type="date" id="re-fecha-${c.id}" value="${c.fechaLimite||''}"></div>
+          </div>
+          <button class="btn-mini btn-mini-purple" onclick="guardarReagenda('${c.id}')">Guardar nueva fecha</button>
+        </div>` : ''}
       <div class="comments">
         ${comentarios}
         <div class="comment-input">
@@ -820,15 +1740,72 @@ const avance=c.avance||0;const avanceHtml=c.estadoReal!=='sin_habilitar'?`
         </div>
       </div>
     </div>
-  `;}
-window.toggleReagendar=function(id){document.getElementById(`reagendar-${id}`).classList.toggle('hidden');}
-window.guardarReagenda=async function(id){const inicio=document.getElementById(`re-inicio-${id}`).value;const fecha=document.getElementById(`re-fecha-${id}`).value;if(!fecha){alert('Selecciona la nueva fecha límite.');return;}
-await updateDoc(doc(db,'compromisos',id),{fechaInicio:inicio||fecha,fechaLimite:fecha,recordatorioEnviado:false,comentarios:arrayUnion({autorUid:currentUser.uid,autorNombre:currentUser.nombre,texto:`Reagendado — nueva fecha límite: ${new Date(fecha+'T00:00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short',year:'numeric'})}`,fecha:new Date().toLocaleDateString('es-CO',{day:'numeric',month:'short'})})});}
-window.toggleAprobado=async function(id,checked){await updateDoc(doc(db,'compromisos',id),{aprobado:checked});if(checked){const c=allCompromisos.find(x=>x.id===id);if(c&&c.responsableUid!==currentUser.uid){enviarCorreo(c.responsableUid,`Nuevo compromiso asignado: ${c.titulo}`,`${c.asignaNombre} te asignó un compromiso, ya habilitado por la administración de área.`,c.titulo,c.fechaLimite);}}}
-window.marcarEstado=async function(id,estado){await updateDoc(doc(db,'compromisos',id),{estado});}
-window.actualizarAvance=async function(id,valor){const num=Math.max(0,Math.min(100,parseInt(valor)||0));await updateDoc(doc(db,'compromisos',id),{avance:num});}
-window.agregarComentario=async function(id){const input=document.getElementById(`comment-${id}`);const texto=input.value.trim();if(!texto)return;await updateDoc(doc(db,'compromisos',id),{comentarios:arrayUnion({autorUid:currentUser.uid,autorNombre:currentUser.nombre,texto,fecha:new Date().toLocaleDateString('es-CO',{day:'numeric',month:'short'})})});input.value='';}
-function emptyState(msg){return`<div class="empty-state"><div class="big">◌</div>${msg}</div>`;}
-function escapeHtml(str){const d=document.createElement('div');d.textContent=str||'';return d.innerHTML;}</script>
+  `;
+}
+
+window.toggleReagendar = function(id){
+  document.getElementById(`reagendar-${id}`).classList.toggle('hidden');
+}
+
+window.guardarReagenda = async function(id){
+  const inicio = document.getElementById(`re-inicio-${id}`).value;
+  const fecha = document.getElementById(`re-fecha-${id}`).value;
+  if(!fecha){ alert('Selecciona la nueva fecha límite.'); return; }
+  await updateDoc(doc(db,'compromisos',id), {
+    fechaInicio: inicio || fecha,
+    fechaLimite: fecha,
+    recordatorioEnviado: false,
+    comentarios: arrayUnion({
+      autorUid: currentUser.uid,
+      autorNombre: currentUser.nombre,
+      texto: `Reagendado — nueva fecha límite: ${new Date(fecha+'T00:00:00').toLocaleDateString('es-CO',{day:'numeric',month:'short',year:'numeric'})}`,
+      fecha: new Date().toLocaleDateString('es-CO',{day:'numeric',month:'short'})
+    })
+  });
+}
+
+window.toggleAprobado = async function(id, checked){
+  await updateDoc(doc(db,'compromisos',id), { aprobado: checked });
+  if(checked){
+    const c = allCompromisos.find(x=>x.id===id);
+    if(c && c.responsableUid!==currentUser.uid){
+      enviarCorreo(c.responsableUid, `Nuevo compromiso asignado: ${c.titulo}`, `${c.asignaNombre} te asignó un compromiso, ya habilitado por la administración de área.`, c.titulo, c.fechaLimite);
+    }
+  }
+}
+
+window.marcarEstado = async function(id, estado){
+  await updateDoc(doc(db,'compromisos',id), { estado });
+}
+
+window.actualizarAvance = async function(id, valor){
+  const num = Math.max(0, Math.min(100, parseInt(valor)||0));
+  await updateDoc(doc(db,'compromisos',id), { avance: num });
+}
+
+window.agregarComentario = async function(id){
+  const input = document.getElementById(`comment-${id}`);
+  const texto = input.value.trim();
+  if(!texto) return;
+  await updateDoc(doc(db,'compromisos',id), {
+    comentarios: arrayUnion({
+      autorUid: currentUser.uid,
+      autorNombre: currentUser.nombre,
+      texto,
+      fecha: new Date().toLocaleDateString('es-CO',{day:'numeric',month:'short'})
+    })
+  });
+  input.value = '';
+}
+
+function emptyState(msg){
+  return `<div class="empty-state"><div class="big">◌</div>${msg}</div>`;
+}
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str||'';
+  return d.innerHTML;
+}
+</script>
 </body>
 </html>
