@@ -133,7 +133,10 @@
   aside .user-name{font-size:13px; font-weight:600;}
   aside .logout{font-size:12px; opacity:0.7; margin-top:6px; background:none; color:white; text-decoration:underline;}
 
-  main{padding:40px 48px; max-width:1150px;}
+  .aside-head{display:contents;}
+  .menu-btn{display:none; background:rgba(255,255,255,0.14); color:white; border-radius:10px; width:44px; height:44px; align-items:center; justify-content:center; flex-shrink:0;}
+  .app-footer-main{grid-column:2;}
+  main{padding:40px 48px; max-width:1150px; min-width:0;}
   .page-header{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:28px; flex-wrap:wrap; gap:12px;}
   .page-header h1{font-size:26px;}
   .page-header .sub{color:var(--ink-600); font-size:14px; margin-top:4px;}
@@ -244,13 +247,49 @@
   @media (max-width:860px){
     #auth-view{grid-template-columns:1fr;}
     .auth-hero{display:none;}
-    #app-view{grid-template-columns:1fr;}
-    aside{flex-direction:row; align-items:center; padding:16px 20px; overflow-x:auto;}
+
+    /* Estructura: una sola columna, sin desbordes laterales */
+    html,body{overflow-x:hidden;}
+    #app-view{grid-template-columns:minmax(0,1fr); grid-template-rows:auto 1fr auto;}
+    .app-footer-main{grid-column:1; padding:14px 16px;}
+
+    /* Menú superior con botón desplegable */
+    aside{position:sticky; top:0; z-index:60; display:block; padding:10px 16px; max-height:100vh; max-height:100dvh; overflow-y:auto; overflow-x:hidden; box-shadow:0 2px 14px rgba(0,0,0,0.18);}
+    .aside-head{display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; column-gap:12px;}
+    .aside-head .logo-box{grid-column:1; grid-row:1 / span 3; margin:0; padding:4px 8px; max-width:96px;}
+    .aside-head .logo-box img{max-height:34px;}
+    .aside-head .brand{grid-column:2; grid-row:1; font-size:16px;}
+    .aside-head .org-name{grid-column:2; grid-row:2; margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+    .aside-head .role-tag{grid-column:2; grid-row:3; margin:0; font-size:10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+    .menu-btn{display:flex; grid-column:3; grid-row:1 / span 3;}
+    aside nav{display:none; flex-direction:column; margin-top:12px; gap:2px;}
+    aside nav button{padding:13px 12px; font-size:15px;}
     aside .spacer{display:none;}
-    nav{flex-direction:row;}
-    .stats-row{grid-template-columns:1fr 1fr;}
+    aside .user-box{display:none; margin-top:14px;}
+    aside.open nav, aside.open .user-box{display:flex; flex-direction:column;}
+    aside.open .user-box{align-items:flex-start;}
+    aside .logout{padding:8px 0; font-size:13px;}
+
+    /* Contenido */
+    main{padding:20px 16px 28px;}
+    .page-header h1{font-size:22px;}
+    .page-header{margin-bottom:20px;}
+    .stats-row, .stats-row[style]{grid-template-columns:1fr 1fr !important; gap:10px;}
+    .stat-card{padding:14px;}
     .grid-2, .grid-3{grid-template-columns:1fr;}
-    main{padding:24px 20px;}
+    .card{padding:18px 16px;}
+    .filters select{flex:1 1 100%; min-width:0; padding:9px 12px;}
+    table.tabla-compromisos{min-width:640px;}
+    .compromiso{padding:14px;}
+    .compromiso-top{flex-wrap:wrap;}
+    .compromiso-actions{flex-wrap:wrap;}
+    .btn-primary{max-width:none !important;}
+    .inline-add{flex-wrap:wrap;}
+    .inline-add input{min-width:0; flex:1 1 180px;}
+    /* 16px evita el zoom automático de iPhone al tocar un campo */
+    input, select, textarea{font-size:16px !important;}
+    table.tabla-reporte{display:block; overflow-x:auto; white-space:nowrap;}
+    .crono-row, .crono-headers{min-width:640px;}
   }
 
   @media print{
@@ -302,10 +341,15 @@
 <!-- ====================== APP VIEW ====================== -->
 <div id="app-view" class="hidden">
   <aside>
-    <div class="logo-box hidden" id="side-logo-box"><img id="side-logo" alt="Logo de la entidad"></div>
-    <div class="brand"><span class="ring"></span>Nórdico</div>
-    <div class="org-name" id="side-org">—</div>
-    <div class="role-tag" id="side-role">—</div>
+    <div class="aside-head">
+      <div class="logo-box hidden" id="side-logo-box"><img id="side-logo" alt="Logo de la entidad"></div>
+      <div class="brand"><span class="ring"></span>Nórdico</div>
+      <div class="org-name" id="side-org">—</div>
+      <div class="role-tag" id="side-role">—</div>
+      <button class="menu-btn" id="menu-btn" type="button" aria-label="Abrir menú" aria-expanded="false" onclick="toggleMenu()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
     <nav id="side-nav"></nav>
     <div class="spacer"></div>
     <div class="user-box">
@@ -315,7 +359,7 @@
     </div>
   </aside>
   <main id="main-content"></main>
-  <div class="app-footer" style="grid-column:2;">Nórdico Compromisos © 2026 Yureima Acevedo Arango — Consultora en Gestión Empresarial. Uso exclusivo bajo servicio de consultoría contratado.</div>
+  <div class="app-footer app-footer-main">Nórdico Compromisos © 2026 Yureima Acevedo Arango — Consultora en Gestión Empresarial. Uso exclusivo bajo servicio de consultoría contratado.</div>
 </div>
 
 <!-- ====================== SELECTOR DE ORGANIZACIONES (super-administradora) ====================== -->
@@ -845,7 +889,17 @@ function computeEstado(c){
 const ESTADO_LABEL = { pendiente:'Pendiente', cumplido:'Cumplido', no_cumplido:'No cumplido', incumplido:'Incumplido', sin_habilitar:'Por habilitar' };
 
 // ---------- PAGE ROUTER ----------
+window.toggleMenu = function(force){
+  const a = document.querySelector('aside'); if(!a) return;
+  const abrir = typeof force==='boolean' ? force : !a.classList.contains('open');
+  a.classList.toggle('open', abrir);
+  const b = document.getElementById('menu-btn');
+  if(b){ b.setAttribute('aria-expanded', abrir ? 'true':'false'); b.setAttribute('aria-label', abrir ? 'Cerrar menú':'Abrir menú'); }
+}
+
 function renderPage(key){
+  const _antes = currentPage;
+  if(_antes !== key){ toggleMenu(false); window.scrollTo(0,0); }
   currentPage = key;
   setActiveNav(key);
   const main = document.getElementById('main-content');
